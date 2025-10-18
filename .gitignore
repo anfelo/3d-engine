@@ -1,0 +1,9 @@
+.DS_Store
+.*.sw*
+*.o
+*.dSYM
+tests/*_tests
+tests/*.log
+build
+bin/
+
