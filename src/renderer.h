@@ -23,8 +23,9 @@ struct renderer {
     mesh Mesh;
 };
 
-void RendererInit(shader_program *ShaderProgram, mesh *Mesh);
-void RendererDestroy(shader_program *ShaderProgram, mesh *Mesh);
-void DrawTriangle(shader_program *ShaderProgram, mesh *Mesh);
+renderer RendererCreate(void);
+void RendererDestroy(renderer *Renderer);
+void DrawTriangle(renderer *Renderer);
+void ClearBackground(float R, float G, float B, float Alpha);
 
 #endif

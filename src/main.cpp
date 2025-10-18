@@ -43,11 +43,7 @@ int main() {
         return -1;
     }
 
-    shader_program ShaderProgram = {};
-    mesh Mesh = {
-        .Vertices = {-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f}};
-
-    RendererInit(&ShaderProgram, &Mesh);
+    renderer Renderer = RendererCreate();
 
     // render loop
     // -----------
@@ -58,10 +54,8 @@ int main() {
 
         // render
         // ------
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        DrawTriangle(&ShaderProgram, &Mesh);
+        ClearBackground(0.1f, 0.1f, 0.1f, 1.0f);
+        DrawTriangle(&Renderer);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse
         // moved etc.)
@@ -70,7 +64,7 @@ int main() {
         glfwPollEvents();
     }
 
-    RendererDestroy(&ShaderProgram, &Mesh);
+    RendererDestroy(&Renderer);
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------

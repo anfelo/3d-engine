@@ -15,7 +15,11 @@ const char *FragmentShaderSource =
     "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
     "}\n\0";
 
-void RendererInit(shader_program *ShaderProgram, mesh *Mesh) {
+renderer RendererCreate() {
+    renderer Renderer;
+    Renderer = {.Mesh{
+        .Vertices{-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f}}};
+
     // build and compile our shader program
     // ------------------------------------
     // vertex shader
@@ -45,14 +49,14 @@ void RendererInit(shader_program *ShaderProgram, mesh *Mesh) {
     }
 
     // link shaders
-    ShaderProgram->ID = glCreateProgram();
-    glAttachShader(ShaderProgram->ID, VertexShader);
-    glAttachShader(ShaderProgram->ID, FragmentShader);
-    glLinkProgram(ShaderProgram->ID);
+    Renderer.ShaderProgram.ID = glCreateProgram();
+    glAttachShader(Renderer.ShaderProgram.ID, VertexShader);
+    glAttachShader(Renderer.ShaderProgram.ID, FragmentShader);
+    glLinkProgram(Renderer.ShaderProgram.ID);
     // check for linking errors
-    glGetProgramiv(ShaderProgram->ID, GL_LINK_STATUS, &Success);
+    glGetProgramiv(Renderer.ShaderProgram.ID, GL_LINK_STATUS, &Success);
     if (!Success) {
-        glGetProgramInfoLog(ShaderProgram->ID, 512, NULL, InfoLog);
+        glGetProgramInfoLog(Renderer.ShaderProgram.ID, 512, NULL, InfoLog);
         std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
                   << InfoLog << std::endl;
     }
@@ -62,31 +66,38 @@ void RendererInit(shader_program *ShaderProgram, mesh *Mesh) {
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     // We specify that we only have 1 3D object
-    glGenBuffers(1, &Mesh->VBO);
-    glGenVertexArrays(1, &Mesh->VAO);
+    glGenBuffers(1, &Renderer.Mesh.VBO);
+    glGenVertexArrays(1, &Renderer.Mesh.VAO);
 
     // bind the Vertex Array Object first, then bind and set vertex buffer(s),
     // and then configure vertex attributes(s).
-    glBindVertexArray(Mesh->VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, Mesh->VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Mesh->Vertices), Mesh->Vertices,
-                 GL_STATIC_DRAW);
+    glBindVertexArray(Renderer.Mesh.VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, Renderer.Mesh.VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Renderer.Mesh.Vertices),
+                 Renderer.Mesh.Vertices, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
                           (void *)0);
     glEnableVertexAttribArray(0);
+
+    return Renderer;
 }
 
-void RendererDestroy(shader_program *ShaderProgram, mesh *Mesh) {
-    glDeleteVertexArrays(1, &Mesh->VAO);
-    glDeleteBuffers(1, &Mesh->VBO);
-    glDeleteProgram(ShaderProgram->ID);
+void RendererDestroy(renderer *Renderer) {
+    glDeleteVertexArrays(1, &Renderer->Mesh.VAO);
+    glDeleteBuffers(1, &Renderer->Mesh.VBO);
+    glDeleteProgram(Renderer->ShaderProgram.ID);
 }
 
-void DrawTriangle(shader_program *ShaderProgram, mesh *Mesh) {
+void ClearBackground(float R, float G, float B, float Alpha) {
+    glClearColor(R, G, B, Alpha);
+    glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void DrawTriangle(renderer *Renderer) {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glUseProgram(ShaderProgram->ID);
-    glBindVertexArray(Mesh->VAO);
+    glUseProgram(Renderer->ShaderProgram.ID);
+    glBindVertexArray(Renderer->Mesh.VAO);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
