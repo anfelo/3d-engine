@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+#include "renderer.h"
+
 void FramebufferSizeCallback(GLFWwindow *window, int width, int height);
 void ProcessInput(GLFWwindow *window);
 
@@ -41,6 +43,12 @@ int main() {
         return -1;
     }
 
+    shader_program_t shaderProgram = {};
+    mesh_t mesh = {
+        .vertices = {-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f}};
+
+    RendererInit(&shaderProgram, &mesh);
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window)) {
@@ -53,12 +61,16 @@ int main() {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        DrawTriangle(&shaderProgram, &mesh);
+
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse
         // moved etc.)
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    RendererDestroy(&shaderProgram, &mesh);
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
