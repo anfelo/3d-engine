@@ -1,24 +1,36 @@
 #include "renderer.h"
 
-const char *VertexShaderSource =
-    "#version 330 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-    "}\0";
-const char *FragmentShaderSource =
-    "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "void main()\n"
-    "{\n"
-    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-    "}\n\0";
+#include <string>
+#include <fstream>
+#include <iostream>
+#include <cerrno>
+
+std::string GetFileContents(const char *Filename) {
+    std::ifstream in(Filename, std::ios::binary);
+    if (in) {
+        std::string Contents;
+        in.seekg(0, std::ios::end);
+        Contents.resize(in.tellg());
+        in.seekg(0, std::ios::beg);
+        in.read(&Contents[0], Contents.size());
+        in.close();
+        return Contents;
+    }
+    throw errno;
+}
 
 renderer RendererCreate() {
     renderer Renderer;
     Renderer = {.Mesh{
         .Vertices{-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f}}};
+
+    std::string vertex_code =
+        GetFileContents("./resources/shaders/default.vert");
+    std::string fragment_code =
+        GetFileContents("resources/shaders/default.frag");
+
+    const char *VertexShaderSource = vertex_code.c_str();
+    const char *FragmentShaderSource = fragment_code.c_str();
 
     // build and compile our shader program
     // ------------------------------------
@@ -94,9 +106,6 @@ void ClearBackground(float R, float G, float B, float Alpha) {
 }
 
 void DrawTriangle(renderer *Renderer) {
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
     glUseProgram(Renderer->ShaderProgram.ID);
     glBindVertexArray(Renderer->Mesh.VAO);
     glDrawArrays(GL_TRIANGLES, 0, 3);
