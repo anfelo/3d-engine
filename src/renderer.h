@@ -6,20 +6,25 @@
 #include <glm/glm.hpp>
 #include <iostream>
 
-typedef struct shader_program_t {
+struct shader_program {
     GLuint ID;
-} shader_program_t;
+};
 
-typedef struct mesh_t {
-    float vertices[9];
+struct mesh {
+    float Vertices[9];
 
     GLuint VAO;
     GLuint VBO;
     GLuint EBO;
-} mesh_t;
+};
 
-void RendererInit(shader_program_t *shaderProgram, mesh_t *mesh);
-void RendererDestroy(shader_program_t *shaderProgram, mesh_t *mesh);
-void DrawTriangle(shader_program_t *shaderProgram, mesh_t *mesh);
+struct renderer {
+    shader_program ShaderProgram;
+    mesh Mesh;
+};
+
+void RendererInit(shader_program *ShaderProgram, mesh *Mesh);
+void RendererDestroy(shader_program *ShaderProgram, mesh *Mesh);
+void DrawTriangle(shader_program *ShaderProgram, mesh *Mesh);
 
 #endif

@@ -5,7 +5,7 @@
 
 #include "renderer.h"
 
-void FramebufferSizeCallback(GLFWwindow *window, int width, int height);
+void FramebufferSizeCallback(GLFWwindow *Window, int Width, int Height);
 void ProcessInput(GLFWwindow *window);
 
 // settings
@@ -26,15 +26,15 @@ int main() {
 
     // glfw window creation
     // --------------------
-    GLFWwindow *window =
+    GLFWwindow *Window =
         glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "3DEngine", NULL, NULL);
-    if (window == NULL) {
+    if (Window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return -1;
     }
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, FramebufferSizeCallback);
+    glfwMakeContextCurrent(Window);
+    glfwSetFramebufferSizeCallback(Window, FramebufferSizeCallback);
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -43,34 +43,34 @@ int main() {
         return -1;
     }
 
-    shader_program_t shaderProgram = {};
-    mesh_t mesh = {
-        .vertices = {-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f}};
+    shader_program ShaderProgram = {};
+    mesh Mesh = {
+        .Vertices = {-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f}};
 
-    RendererInit(&shaderProgram, &mesh);
+    RendererInit(&ShaderProgram, &Mesh);
 
     // render loop
     // -----------
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(Window)) {
         // input
         // -----
-        ProcessInput(window);
+        ProcessInput(Window);
 
         // render
         // ------
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        DrawTriangle(&shaderProgram, &mesh);
+        DrawTriangle(&ShaderProgram, &Mesh);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse
         // moved etc.)
         // -------------------------------------------------------------------------------
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(Window);
         glfwPollEvents();
     }
 
-    RendererDestroy(&shaderProgram, &mesh);
+    RendererDestroy(&ShaderProgram, &Mesh);
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
@@ -81,18 +81,18 @@ int main() {
 // process all input: query GLFW whether relevant keys are pressed/released this
 // frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void ProcessInput(GLFWwindow *window) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-        glfwSetWindowShouldClose(window, true);
+void ProcessInput(GLFWwindow *Window) {
+    if (glfwGetKey(Window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+        glfwSetWindowShouldClose(Window, true);
     }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback
 // function executes
 // ---------------------------------------------------------------------------------------------
-void FramebufferSizeCallback(GLFWwindow *window, int width, int height) {
+void FramebufferSizeCallback(GLFWwindow *Window, int Width, int Height) {
     // make sure the viewport matches the new window dimensions; note that width
     // and height will be significantly larger than specified on retina
     // displays.
-    glViewport(0, 0, width, height);
+    glViewport(0, 0, Width, Height);
 }
