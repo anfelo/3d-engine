@@ -27,7 +27,7 @@ int main() {
     // glfw window creation
     // --------------------
     GLFWwindow *Window =
-        glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "3DEngine", NULL, NULL);
+        glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "3D Engine", NULL, NULL);
     if (Window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -55,7 +55,8 @@ int main() {
         // render
         // ------
         ClearBackground(0.1f, 0.1f, 0.1f, 1.0f);
-        DrawTriangle(&Renderer);
+        // DrawTriangle(&Renderer);
+        DrawRectangle(&Renderer);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse
         // moved etc.)

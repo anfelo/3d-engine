@@ -21,8 +21,17 @@ std::string GetFileContents(const char *Filename) {
 
 renderer RendererCreate() {
     renderer Renderer;
-    Renderer = {.Mesh{
-        .Vertices{-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f}}};
+    Renderer = {
+        .TriangleMesh{
+            .Vertices{-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f},
+        },
+        .RectangleMesh{.Vertices{
+                           0.5f, 0.5f, 0.0f,   // top right
+                           0.5f, -0.5f, 0.0f,  // bottom right
+                           -0.5f, -0.5f, 0.0f, // bottom left
+                           -0.5f, 0.5f, 0.0f   // top left
+                       },
+                       .Indices{0, 1, 3, 1, 2, 3}}};
 
     std::string vertex_code =
         GetFileContents("./resources/shaders/default.vert");
@@ -75,28 +84,56 @@ renderer RendererCreate() {
     glDeleteShader(VertexShader);
     glDeleteShader(FragmentShader);
 
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
-    // We specify that we only have 1 3D object
-    glGenBuffers(1, &Renderer.Mesh.VBO);
-    glGenVertexArrays(1, &Renderer.Mesh.VAO);
+    // ### Triangle ###
+    glGenBuffers(1, &Renderer.TriangleMesh.VBO);
+    glGenVertexArrays(1, &Renderer.TriangleMesh.VAO);
 
     // bind the Vertex Array Object first, then bind and set vertex buffer(s),
     // and then configure vertex attributes(s).
-    glBindVertexArray(Renderer.Mesh.VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, Renderer.Mesh.VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Renderer.Mesh.Vertices),
-                 Renderer.Mesh.Vertices, GL_STATIC_DRAW);
+    glBindVertexArray(Renderer.TriangleMesh.VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, Renderer.TriangleMesh.VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Renderer.TriangleMesh.Vertices),
+                 Renderer.TriangleMesh.Vertices, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
                           (void *)0);
     glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    // ### Rectangle ###
+    glGenBuffers(1, &Renderer.RectangleMesh.VBO);
+    glGenVertexArrays(1, &Renderer.RectangleMesh.VAO);
+    glGenBuffers(1, &Renderer.RectangleMesh.EBO);
+
+    // bind the Vertex Array Object first, then bind and set vertex buffer(s),
+    // and then configure vertex attributes(s).
+    glBindVertexArray(Renderer.RectangleMesh.VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, Renderer.RectangleMesh.VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Renderer.RectangleMesh.Vertices),
+                 Renderer.RectangleMesh.Vertices, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, Renderer.RectangleMesh.EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 sizeof(Renderer.RectangleMesh.Indices),
+                 Renderer.RectangleMesh.Indices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+                          (void *)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
     return Renderer;
 }
 
 void RendererDestroy(renderer *Renderer) {
-    glDeleteVertexArrays(1, &Renderer->Mesh.VAO);
-    glDeleteBuffers(1, &Renderer->Mesh.VBO);
+    glDeleteVertexArrays(1, &Renderer->TriangleMesh.VAO);
+    glDeleteBuffers(1, &Renderer->TriangleMesh.VBO);
+
+    glDeleteVertexArrays(1, &Renderer->RectangleMesh.VAO);
+    glDeleteBuffers(1, &Renderer->RectangleMesh.VBO);
+    glDeleteBuffers(1, &Renderer->RectangleMesh.EBO);
+
     glDeleteProgram(Renderer->ShaderProgram.ID);
 }
 
@@ -107,6 +144,14 @@ void ClearBackground(float R, float G, float B, float Alpha) {
 
 void DrawTriangle(renderer *Renderer) {
     glUseProgram(Renderer->ShaderProgram.ID);
-    glBindVertexArray(Renderer->Mesh.VAO);
+    glBindVertexArray(Renderer->TriangleMesh.VAO);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawArrays(GL_TRIANGLES, 0, 3);
+}
+
+void DrawRectangle(renderer *Renderer) {
+    glUseProgram(Renderer->ShaderProgram.ID);
+    glBindVertexArray(Renderer->RectangleMesh.VAO);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
