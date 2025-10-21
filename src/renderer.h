@@ -27,17 +27,35 @@ struct rectangle_mesh {
     GLuint EBO;
 };
 
+struct cube_mesh {
+    float Vertices[108];
+
+    GLuint VAO;
+    GLuint VBO;
+    GLuint EBO;
+};
+
+struct uniform_locators {
+    GLuint ModelUniformLoc;
+    GLuint ViewUniformLoc;
+    GLuint ProjectionUniformLoc;
+};
+
 struct renderer {
     shader_program ShaderProgram;
 
     triangle_mesh TriangleMesh;
     rectangle_mesh RectangleMesh;
+    cube_mesh CubeMesh;
+
+    uniform_locators Uniforms;
 };
 
 renderer RendererCreate(void);
 void RendererDestroy(renderer *Renderer);
-void DrawTriangle(renderer *Renderer);
-void DrawRectangle(renderer *Renderer);
+void DrawTriangle(renderer *Renderer, glm::vec<3, float> position);
+void DrawRectangle(renderer *Renderer, glm::vec<3, float> position);
+void DrawCube(renderer *Renderer, glm::vec<3, float> position);
 void ClearBackground(float R, float G, float B, float Alpha);
 
 #endif

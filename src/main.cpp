@@ -55,8 +55,9 @@ int main() {
         // render
         // ------
         ClearBackground(0.1f, 0.1f, 0.1f, 1.0f);
-        // DrawTriangle(&Renderer);
-        DrawRectangle(&Renderer);
+        // DrawTriangle(&Renderer, glm::vec3(0.0f, 0.0f, 0.0f));
+        // DrawRectangle(&Renderer, glm::vec3(0.0f, 0.0f, 0.0f));
+        DrawCube(&Renderer, glm::vec3(0.0f, 0.0f, 0.0f));
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse
         // moved etc.)

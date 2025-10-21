@@ -5,6 +5,12 @@
 #include <iostream>
 #include <cerrno>
 
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/trigonometric.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 std::string GetFileContents(const char *Filename) {
     std::ifstream in(Filename, std::ios::binary);
     if (in) {
@@ -20,6 +26,10 @@ std::string GetFileContents(const char *Filename) {
 }
 
 renderer RendererCreate() {
+    // configure global opengl state
+    // -----------------------------
+    glEnable(GL_DEPTH_TEST);
+
     renderer Renderer;
     Renderer = {
         .TriangleMesh{
@@ -31,7 +41,28 @@ renderer RendererCreate() {
                            -0.5f, -0.5f, 0.0f, // bottom left
                            -0.5f, 0.5f, 0.0f   // top left
                        },
-                       .Indices{0, 1, 3, 1, 2, 3}}};
+                       .Indices{0, 1, 3, 1, 2, 3}},
+        .CubeMesh{.Vertices{
+            -0.5f, -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, 0.5f,  0.5f,  -0.5f,
+            0.5f,  0.5f,  -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, -0.5f, -0.5f,
+
+            -0.5f, -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  0.5f,  0.5f,
+            0.5f,  0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  -0.5f, -0.5f, 0.5f,
+
+            -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  -0.5f, -0.5f, -0.5f, -0.5f,
+            -0.5f, -0.5f, -0.5f, -0.5f, -0.5f, 0.5f,  -0.5f, 0.5f,  0.5f,
+
+            0.5f,  0.5f,  0.5f,  0.5f,  0.5f,  -0.5f, 0.5f,  -0.5f, -0.5f,
+            0.5f,  -0.5f, -0.5f, 0.5f,  -0.5f, 0.5f,  0.5f,  0.5f,  0.5f,
+
+            -0.5f, -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, 0.5f,  -0.5f, 0.5f,
+            0.5f,  -0.5f, 0.5f,  -0.5f, -0.5f, 0.5f,  -0.5f, -0.5f, -0.5f,
+
+            -0.5f, 0.5f,  -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  0.5f,
+            0.5f,  0.5f,  0.5f,  -0.5f, 0.5f,  0.5f,  -0.5f, 0.5f,  -0.5f,
+        }},
+        .Uniforms{0},
+    };
 
     std::string vertex_code =
         GetFileContents("./resources/shaders/default.vert");
@@ -123,6 +154,29 @@ renderer RendererCreate() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
+    // ### Cube ###
+    glGenBuffers(1, &Renderer.CubeMesh.VBO);
+    glGenVertexArrays(1, &Renderer.CubeMesh.VAO);
+
+    // bind the Vertex Array Object first, then bind and set vertex buffer(s),
+    // and then configure vertex attributes(s).
+    glBindVertexArray(Renderer.CubeMesh.VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, Renderer.CubeMesh.VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Renderer.CubeMesh.Vertices),
+                 Renderer.CubeMesh.Vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
+                          (void *)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    Renderer.Uniforms.ModelUniformLoc =
+        glGetUniformLocation(Renderer.ShaderProgram.ID, "u_model");
+    Renderer.Uniforms.ViewUniformLoc =
+        glGetUniformLocation(Renderer.ShaderProgram.ID, "u_view");
+    Renderer.Uniforms.ProjectionUniformLoc =
+        glGetUniformLocation(Renderer.ShaderProgram.ID, "u_projection");
+
     return Renderer;
 }
 
@@ -139,19 +193,80 @@ void RendererDestroy(renderer *Renderer) {
 
 void ClearBackground(float R, float G, float B, float Alpha) {
     glClearColor(R, G, B, Alpha);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void DrawTriangle(renderer *Renderer) {
+void DrawTriangle(renderer *Renderer, glm::vec<3, float> position) {
+    glm::mat4 view = glm::mat4(1.0f);
+    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+    glm::mat4 projection;
+    projection =
+        glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+
+    // Sets the uniform value
+    glUniformMatrix4fv(Renderer->Uniforms.ViewUniformLoc, 1, GL_FALSE,
+                       glm::value_ptr(view));
+    glUniformMatrix4fv(Renderer->Uniforms.ProjectionUniformLoc, 1, GL_FALSE,
+                       glm::value_ptr(projection));
+
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, position);
+    glUniformMatrix4fv(Renderer->Uniforms.ModelUniformLoc, 1, GL_FALSE,
+                       glm::value_ptr(model));
+
     glUseProgram(Renderer->ShaderProgram.ID);
     glBindVertexArray(Renderer->TriangleMesh.VAO);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
-void DrawRectangle(renderer *Renderer) {
+void DrawRectangle(renderer *Renderer, glm::vec<3, float> position) {
+    glm::mat4 view = glm::mat4(1.0f);
+    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+    glm::mat4 projection;
+    projection =
+        glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+
+    // Sets the uniform value
+    glUniformMatrix4fv(Renderer->Uniforms.ViewUniformLoc, 1, GL_FALSE,
+                       glm::value_ptr(view));
+    glUniformMatrix4fv(Renderer->Uniforms.ProjectionUniformLoc, 1, GL_FALSE,
+                       glm::value_ptr(projection));
+
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, position);
+    glUniformMatrix4fv(Renderer->Uniforms.ModelUniformLoc, 1, GL_FALSE,
+                       glm::value_ptr(model));
+
     glUseProgram(Renderer->ShaderProgram.ID);
     glBindVertexArray(Renderer->RectangleMesh.VAO);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
+
+void DrawCube(renderer *Renderer, glm::vec<3, float> position) {
+    glm::mat4 view = glm::mat4(1.0f);
+    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+    glm::mat4 projection;
+    projection =
+        glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
+
+    // Sets the uniform value
+    glUniformMatrix4fv(Renderer->Uniforms.ViewUniformLoc, 1, GL_FALSE,
+                       glm::value_ptr(view));
+    glUniformMatrix4fv(Renderer->Uniforms.ProjectionUniformLoc, 1, GL_FALSE,
+                       glm::value_ptr(projection));
+
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::translate(model, position);
+    float angle = 20.0f;
+    model =
+        glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+    glUniformMatrix4fv(Renderer->Uniforms.ModelUniformLoc, 1, GL_FALSE,
+                       glm::value_ptr(model));
+
+    glUseProgram(Renderer->ShaderProgram.ID);
+    glBindVertexArray(Renderer->CubeMesh.VAO);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
 }
