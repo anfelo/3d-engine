@@ -3,10 +3,12 @@
 
 #include <iostream>
 
+#include "context.h"
+#include "gui.h"
 #include "renderer.h"
 
 void FramebufferSizeCallback(GLFWwindow *Window, int Width, int Height);
-void ProcessInput(GLFWwindow *window);
+void ProcessInput(context *Context);
 
 // settings
 const unsigned int SCREEN_WIDTH = 800;
@@ -28,13 +30,15 @@ int main() {
     // --------------------
     GLFWwindow *Window =
         glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "3D Engine", NULL, NULL);
-    if (Window == NULL) {
+    context Context = {.Window = Window};
+
+    if (Context.Window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return -1;
     }
-    glfwMakeContextCurrent(Window);
-    glfwSetFramebufferSizeCallback(Window, FramebufferSizeCallback);
+    glfwMakeContextCurrent(Context.Window);
+    glfwSetFramebufferSizeCallback(Context.Window, FramebufferSizeCallback);
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -43,29 +47,44 @@ int main() {
         return -1;
     }
 
+    gui Gui = GuiCreate(&Context);
     renderer Renderer = RendererCreate();
+
+    entity Entity = {.position = glm::vec3(0.0f, 0.0f, 0.0f)};
+    Context.Entity = &Entity;
 
     // render loop
     // -----------
-    while (!glfwWindowShouldClose(Window)) {
+    while (!glfwWindowShouldClose(Context.Window)) {
         // input
-        // -----
-        ProcessInput(Window);
+        // --------------------
+        if (!Gui.io.WantCaptureMouse) {
+            ProcessInput(&Context);
+        }
+
+        // gui: new frame
+        // ------
+        GuiNewFrame();
 
         // render
         // ------
         ClearBackground(0.1f, 0.1f, 0.1f, 1.0f);
-        // DrawTriangle(&Renderer, glm::vec3(0.0f, 0.0f, 0.0f));
-        // DrawRectangle(&Renderer, glm::vec3(0.0f, 0.0f, 0.0f));
-        DrawCube(&Renderer, glm::vec3(0.0f, 0.0f, 0.0f));
+        // DrawTriangle(&Renderer, Entity.position);
+        // DrawRectangle(&Renderer, Entity.position);
+        DrawCube(&Renderer, Entity.position);
+
+        // gui
+        // ------
+        GuiDraw(&Context);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse
         // moved etc.)
         // -------------------------------------------------------------------------------
-        glfwSwapBuffers(Window);
+        glfwSwapBuffers(Context.Window);
         glfwPollEvents();
     }
 
+    GuiDestroy();
     RendererDestroy(&Renderer);
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
@@ -77,9 +96,9 @@ int main() {
 // process all input: query GLFW whether relevant keys are pressed/released this
 // frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
-void ProcessInput(GLFWwindow *Window) {
-    if (glfwGetKey(Window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-        glfwSetWindowShouldClose(Window, true);
+void ProcessInput(context *Context) {
+    if (glfwGetKey(Context->Window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+        glfwSetWindowShouldClose(Context->Window, true);
     }
 }
 

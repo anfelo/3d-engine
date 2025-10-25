@@ -1,7 +1,7 @@
 APP_NAME = 3DEngine
 BUILD_DIR = ./bin
 RESOURCES_DIR = resources
-C_FILES = ./src/*.c ./src/*.cpp
+C_FILES = ./src/*.c ./src/*.cpp ./src/imgui/*.cpp
 CFLAGS = -Wall -g -O0 -std=c++17
 
 APP_DEFINES:=
