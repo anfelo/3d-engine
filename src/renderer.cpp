@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cerrno>
 
+#include "camera.h"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/trigonometric.hpp"
 #include <glm/glm.hpp>
@@ -245,23 +246,13 @@ void DrawRectangle(renderer *Renderer, glm::vec<3, float> position) {
 }
 
 void DrawCube(renderer *Renderer, glm::vec<3, float> position) {
-    glm::mat4 view = glm::mat4(1.0f);
-    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-    glm::mat4 projection;
-    projection =
-        glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
-
-    // Sets the uniform value
-    glUniformMatrix4fv(Renderer->Uniforms.ViewUniformLoc, 1, GL_FALSE,
-                       glm::value_ptr(view));
-    glUniformMatrix4fv(Renderer->Uniforms.ProjectionUniformLoc, 1, GL_FALSE,
-                       glm::value_ptr(projection));
-
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, position);
+    // TODO: Make the rotation work with the gui params
     float angle = 20.0f;
+    model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f));
     model =
-        glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+        glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 1.0f, 1.0f));
     glUniformMatrix4fv(Renderer->Uniforms.ModelUniformLoc, 1, GL_FALSE,
                        glm::value_ptr(model));
 
@@ -269,4 +260,17 @@ void DrawCube(renderer *Renderer, glm::vec<3, float> position) {
     glBindVertexArray(Renderer->CubeMesh.VAO);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawArrays(GL_TRIANGLES, 0, 36);
+}
+
+void BeginMode3D(renderer *Renderer, camera *Camera, float ScreenWidth,
+                 float ScreenHeight) {
+    glm::mat4 view = CameraGetViewMatrix(Camera);
+    glm::mat4 projection = glm::perspective(
+        glm::radians(Camera->Zoom), ScreenWidth / ScreenHeight, 0.1f, 100.0f);
+
+    // Sets the uniform value
+    glUniformMatrix4fv(Renderer->Uniforms.ViewUniformLoc, 1, GL_FALSE,
+                       glm::value_ptr(view));
+    glUniformMatrix4fv(Renderer->Uniforms.ProjectionUniformLoc, 1, GL_FALSE,
+                       glm::value_ptr(projection));
 }

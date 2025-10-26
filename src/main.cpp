@@ -3,16 +3,20 @@
 
 #include <iostream>
 
+#include "camera.h"
 #include "context.h"
 #include "gui.h"
 #include "renderer.h"
 
 void FramebufferSizeCallback(GLFWwindow *Window, int Width, int Height);
+void MouseScrollCallback(GLFWwindow *Window, double OffsetX, double OffsetY);
 void ProcessInput(context *Context);
 
 // settings
-const unsigned int SCREEN_WIDTH = 800;
-const unsigned int SCREEN_HEIGHT = 600;
+const unsigned int SCREEN_WIDTH = 1200;
+const unsigned int SCREEN_HEIGHT = 800;
+
+static context Context;
 
 int main() {
     // glfw: initialize and configure
@@ -30,7 +34,15 @@ int main() {
     // --------------------
     GLFWwindow *Window =
         glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "3D Engine", NULL, NULL);
-    context Context = {.Window = Window};
+    Context = {
+        .Window = Window,
+        .ScreenWidth = (float)SCREEN_WIDTH,
+        .ScreenHeight = (float)SCREEN_HEIGHT,
+        .DeltaTime = 0.0f,
+        .LastX = SCREEN_WIDTH / 2.0f,
+        .LastY = SCREEN_HEIGHT / 2.0f,
+        .FirstClick = true,
+    };
 
     if (Context.Window == NULL) {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -39,6 +51,7 @@ int main() {
     }
     glfwMakeContextCurrent(Context.Window);
     glfwSetFramebufferSizeCallback(Context.Window, FramebufferSizeCallback);
+    glfwSetScrollCallback(Context.Window, MouseScrollCallback);
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -49,13 +62,26 @@ int main() {
 
     gui Gui = GuiCreate(&Context);
     renderer Renderer = RendererCreate();
+    camera Camera = CameraCreate(glm::vec3(0.0f, 0.0f, 3.0f),
+                                 glm::vec3(0.0f, 1.0f, 0.0f), YAW, PITCH);
 
-    entity Entity = {.position = glm::vec3(0.0f, 0.0f, 0.0f)};
+    entity Entity = {
+        .position = glm::vec3(0.0f),
+        .scale = glm::vec3(0.0f),
+        .rotation = glm::vec3(0.0f),
+    };
     Context.Entity = &Entity;
+    Context.Camera = &Camera;
 
     // render loop
     // -----------
     while (!glfwWindowShouldClose(Context.Window)) {
+        // per-frame time logic
+        // --------------------
+        float CurrentFrame = static_cast<float>(glfwGetTime());
+        Context.DeltaTime = CurrentFrame - Context.LastFrame;
+        Context.LastFrame = CurrentFrame;
+
         // input
         // --------------------
         if (!Gui.io.WantCaptureMouse) {
@@ -69,9 +95,13 @@ int main() {
         // render
         // ------
         ClearBackground(0.1f, 0.1f, 0.1f, 1.0f);
-        // DrawTriangle(&Renderer, Entity.position);
-        // DrawRectangle(&Renderer, Entity.position);
+
+        BeginMode3D(&Renderer, Context.Camera, Context.ScreenWidth,
+                    Context.ScreenHeight);
         DrawCube(&Renderer, Entity.position);
+
+        // TODO: End the camera 3d rendering
+        // EndMode3D();
 
         // gui
         // ------
@@ -100,6 +130,68 @@ void ProcessInput(context *Context) {
     if (glfwGetKey(Context->Window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(Context->Window, true);
     }
+
+    if (glfwGetKey(Context->Window, GLFW_KEY_W) == GLFW_PRESS) {
+        CameraProcessKeyboard(Context->Camera, FORWARD, Context->DeltaTime);
+    }
+
+    if (glfwGetKey(Context->Window, GLFW_KEY_S) == GLFW_PRESS) {
+        CameraProcessKeyboard(Context->Camera, BACKWARD, Context->DeltaTime);
+    }
+
+    if (glfwGetKey(Context->Window, GLFW_KEY_A) == GLFW_PRESS) {
+        CameraProcessKeyboard(Context->Camera, LEFT, Context->DeltaTime);
+    }
+
+    if (glfwGetKey(Context->Window, GLFW_KEY_D) == GLFW_PRESS) {
+        CameraProcessKeyboard(Context->Camera, RIGHT, Context->DeltaTime);
+    }
+
+    if (glfwGetKey(Context->Window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        CameraProcessKeyboard(Context->Camera, UP, Context->DeltaTime);
+    }
+
+    if (glfwGetKey(Context->Window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+        CameraProcessKeyboard(Context->Camera, DOWN, Context->DeltaTime);
+    }
+
+    if (glfwGetMouseButton(Context->Window, GLFW_MOUSE_BUTTON_LEFT) ==
+        GLFW_PRESS) {
+        // INFO: Hide the mouse cursor on left mouse button click
+        glfwSetInputMode(Context->Window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+
+        if (Context->FirstClick) {
+            // Center the cursor and reset the last mouse position
+            glfwSetCursorPos(Context->Window, (Context->ScreenWidth / 2.0f),
+                             (Context->ScreenHeight / 2.0f));
+            Context->LastX = Context->ScreenWidth / 2.0f;
+            Context->LastY = Context->ScreenHeight / 2.0f;
+            Context->FirstClick = false;
+        }
+
+        double MouseX;
+        double MouseY;
+        glfwGetCursorPos(Context->Window, &MouseX, &MouseY);
+
+        float OffsetX = (float)(MouseX)-Context->LastX;
+        float OffsetY = Context->LastY - (float)(MouseY);
+
+        Context->LastX = MouseX;
+        Context->LastY = MouseY;
+
+        CameraProcessMouseMovement(Context->Camera, OffsetX, OffsetY, true);
+
+        // Reset the mouse position and the last mouse position
+        // to calculate the next frame's delta
+        glfwSetCursorPos(Context->Window, (Context->ScreenWidth / 2.0f),
+                         (Context->ScreenHeight / 2.0f));
+        Context->LastX = Context->ScreenWidth / 2.0f;
+        Context->LastY = Context->ScreenHeight / 2.0f;
+    } else if (glfwGetMouseButton(Context->Window, GLFW_MOUSE_BUTTON_LEFT) ==
+               GLFW_RELEASE) {
+        glfwSetInputMode(Context->Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        Context->FirstClick = true;
+    }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback
@@ -110,4 +202,8 @@ void FramebufferSizeCallback(GLFWwindow *Window, int Width, int Height) {
     // and height will be significantly larger than specified on retina
     // displays.
     glViewport(0, 0, Width, Height);
+}
+
+void MouseScrollCallback(GLFWwindow *Window, double OffsetX, double OffsetY) {
+    CameraProcessMouseScroll(Context.Camera, static_cast<float>(OffsetY));
 }

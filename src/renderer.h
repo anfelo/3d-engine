@@ -1,6 +1,8 @@
 #ifndef RENDERER_H_
 #define RENDERER_H_
 
+#include "camera.h"
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -57,5 +59,7 @@ void DrawTriangle(renderer *Renderer, glm::vec<3, float> position);
 void DrawRectangle(renderer *Renderer, glm::vec<3, float> position);
 void DrawCube(renderer *Renderer, glm::vec<3, float> position);
 void ClearBackground(float R, float G, float B, float Alpha);
+void BeginMode3D(renderer *Renderer, camera *Camera, float ScreenWidth,
+                 float ScreenHeight);
 
 #endif

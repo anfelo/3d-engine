@@ -22,7 +22,7 @@ void GuiNewFrame(void) {
 
 void GuiDraw(context *Context) {
     ImGui::Begin("Properties");
-    ImGui::Text("Object");
+    ImGui::Text("Entity");
     ImGui::DragFloat3("Position", glm::value_ptr(Context->Entity->position),
                       0.1f);
     ImGui::End();
