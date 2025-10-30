@@ -21,10 +21,24 @@ void GuiNewFrame(void) {
 }
 
 void GuiDraw(context *Context) {
-    ImGui::Begin("Properties");
+    // Entity Properties
+    ImGui::Begin("Entity Properties");
     ImGui::Text("Entity");
-    ImGui::DragFloat3("Position", glm::value_ptr(Context->Entity->position),
+    ImGui::DragFloat3("Position", glm::value_ptr(Context->Entity->Position),
                       0.1f);
+    ImGui::Separator();
+    ImGui::ColorEdit4("Color", glm::value_ptr(Context->Entity->Color));
+
+    ImGui::End();
+
+    // Light Properties
+    ImGui::Begin("Light Properties");
+    ImGui::Text("Entity");
+    ImGui::DragFloat3("Position", glm::value_ptr(Context->LightEntity->Position),
+                      0.1f);
+    ImGui::Separator();
+    ImGui::ColorEdit4("Color", glm::value_ptr(Context->LightEntity->Color));
+
     ImGui::End();
 
     ImGui::Render();

@@ -66,11 +66,19 @@ int main() {
                                  glm::vec3(0.0f, 1.0f, 0.0f), YAW, PITCH);
 
     entity Entity = {
-        .position = glm::vec3(0.0f),
-        .scale = glm::vec3(0.0f),
-        .rotation = glm::vec3(0.0f),
+        .Position = glm::vec3(0.0f),
+        .Scale = glm::vec3(0.0f),
+        .Rotation = glm::vec3(0.0f),
+        .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
+    };
+    entity LightEntity = {
+        .Position = glm::vec3(0.0f),
+        .Scale = glm::vec3(0.0f),
+        .Rotation = glm::vec3(0.0f),
+        .Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
     };
     Context.Entity = &Entity;
+    Context.LightEntity = &LightEntity;
     Context.Camera = &Camera;
 
     // render loop
@@ -98,7 +106,9 @@ int main() {
 
         BeginMode3D(&Renderer, Context.Camera, Context.ScreenWidth,
                     Context.ScreenHeight);
-        DrawCube(&Renderer, Entity.position);
+
+        DrawLight(&Renderer, LightEntity.Position, LightEntity.Color);
+        DrawCube(&Renderer, Entity.Position, Entity.Color);
 
         // TODO: End the camera 3d rendering
         // EndMode3D();

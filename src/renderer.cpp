@@ -178,6 +178,11 @@ renderer RendererCreate() {
     Renderer.Uniforms.ProjectionUniformLoc =
         glGetUniformLocation(Renderer.ShaderProgram.ID, "u_projection");
 
+    Renderer.Uniforms.EntityColorUniformLoc =
+        glGetUniformLocation(Renderer.ShaderProgram.ID, "u_entity_color");
+    Renderer.Uniforms.LightColorUniformLoc =
+        glGetUniformLocation(Renderer.ShaderProgram.ID, "u_light_color");
+
     return Renderer;
 }
 
@@ -245,16 +250,21 @@ void DrawRectangle(renderer *Renderer, glm::vec<3, float> position) {
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-void DrawCube(renderer *Renderer, glm::vec<3, float> position) {
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, position);
+void DrawCube(renderer *Renderer, glm::vec<3, float> Position,
+              glm::vec<4, float> Color) {
+    glm::vec3 CubeColor = glm::vec3(Color[0], Color[1], Color[2]);
+    glUniform3fv(Renderer->Uniforms.EntityColorUniformLoc, 1,
+                 glm::value_ptr(CubeColor));
+
+    glm::mat4 Model = glm::mat4(1.0f);
+    Model = glm::translate(Model, Position);
     // TODO: Make the rotation work with the gui params
-    float angle = 20.0f;
-    model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f));
-    model =
-        glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 1.0f, 1.0f));
+    float Angle = 20.0f;
+    Model = glm::rotate(Model, glm::radians(Angle), glm::vec3(1.0f));
+    Model =
+        glm::rotate(Model, glm::radians(Angle), glm::vec3(1.0f, 1.0f, 1.0f));
     glUniformMatrix4fv(Renderer->Uniforms.ModelUniformLoc, 1, GL_FALSE,
-                       glm::value_ptr(model));
+                       glm::value_ptr(Model));
 
     glUseProgram(Renderer->ShaderProgram.ID);
     glBindVertexArray(Renderer->CubeMesh.VAO);
@@ -262,15 +272,22 @@ void DrawCube(renderer *Renderer, glm::vec<3, float> position) {
     glDrawArrays(GL_TRIANGLES, 0, 36);
 }
 
+void DrawLight(renderer *Renderer, glm::vec<3, float> Position,
+               glm::vec<4, float> Color) {
+    glm::vec3 LightColor = glm::vec3(Color[0], Color[1], Color[2]);
+    glUniform3fv(Renderer->Uniforms.LightColorUniformLoc, 1,
+                 glm::value_ptr(LightColor));
+}
+
 void BeginMode3D(renderer *Renderer, camera *Camera, float ScreenWidth,
                  float ScreenHeight) {
-    glm::mat4 view = CameraGetViewMatrix(Camera);
-    glm::mat4 projection = glm::perspective(
+    glm::mat4 View = CameraGetViewMatrix(Camera);
+    glm::mat4 Projection = glm::perspective(
         glm::radians(Camera->Zoom), ScreenWidth / ScreenHeight, 0.1f, 100.0f);
 
     // Sets the uniform value
     glUniformMatrix4fv(Renderer->Uniforms.ViewUniformLoc, 1, GL_FALSE,
-                       glm::value_ptr(view));
+                       glm::value_ptr(View));
     glUniformMatrix4fv(Renderer->Uniforms.ProjectionUniformLoc, 1, GL_FALSE,
-                       glm::value_ptr(projection));
+                       glm::value_ptr(Projection));
 }

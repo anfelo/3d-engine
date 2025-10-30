@@ -41,6 +41,9 @@ struct uniform_locators {
     GLuint ModelUniformLoc;
     GLuint ViewUniformLoc;
     GLuint ProjectionUniformLoc;
+
+    GLuint EntityColorUniformLoc;
+    GLuint LightColorUniformLoc;
 };
 
 struct renderer {
@@ -57,7 +60,10 @@ renderer RendererCreate(void);
 void RendererDestroy(renderer *Renderer);
 void DrawTriangle(renderer *Renderer, glm::vec<3, float> position);
 void DrawRectangle(renderer *Renderer, glm::vec<3, float> position);
-void DrawCube(renderer *Renderer, glm::vec<3, float> position);
+void DrawCube(renderer *Renderer, glm::vec<3, float> Position,
+              glm::vec<4, float> Color);
+void DrawLight(renderer *Renderer, glm::vec<3, float> Position,
+               glm::vec<4, float> Color);
 void ClearBackground(float R, float G, float B, float Alpha);
 void BeginMode3D(renderer *Renderer, camera *Camera, float ScreenWidth,
                  float ScreenHeight);
