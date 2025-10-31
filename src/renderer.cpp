@@ -200,6 +200,8 @@ renderer RendererCreate() {
         glGetUniformLocation(Renderer.ShaderProgram.ID, "u_light_color");
     Renderer.Uniforms.LightPositionUniformLoc =
         glGetUniformLocation(Renderer.ShaderProgram.ID, "u_light_pos");
+    Renderer.Uniforms.ViewPositionUniformLoc =
+        glGetUniformLocation(Renderer.ShaderProgram.ID, "u_view_pos");
 
     return Renderer;
 }
@@ -312,4 +314,7 @@ void BeginMode3D(renderer *Renderer, camera *Camera, float ScreenWidth,
                        glm::value_ptr(View));
     glUniformMatrix4fv(Renderer->Uniforms.ProjectionUniformLoc, 1, GL_FALSE,
                        glm::value_ptr(Projection));
+
+    glUniform3fv(Renderer->Uniforms.ViewPositionUniformLoc, 1,
+                 glm::value_ptr(Camera->Position));
 }

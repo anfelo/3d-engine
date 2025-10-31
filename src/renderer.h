@@ -45,6 +45,7 @@ struct uniform_locators {
     GLuint EntityColorUniformLoc;
     GLuint LightColorUniformLoc;
     GLuint LightPositionUniformLoc;
+    GLuint ViewPositionUniformLoc;
 };
 
 struct renderer {
