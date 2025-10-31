@@ -72,7 +72,7 @@ int main() {
         .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
     };
     entity LightEntity = {
-        .Position = glm::vec3(0.0f),
+        .Position = glm::vec3(1.2f, 1.0f, 2.0f),
         .Scale = glm::vec3(0.0f),
         .Rotation = glm::vec3(0.0f),
         .Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),

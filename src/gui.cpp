@@ -34,8 +34,8 @@ void GuiDraw(context *Context) {
     // Light Properties
     ImGui::Begin("Light Properties");
     ImGui::Text("Entity");
-    ImGui::DragFloat3("Position", glm::value_ptr(Context->LightEntity->Position),
-                      0.1f);
+    ImGui::DragFloat3("Position",
+                      glm::value_ptr(Context->LightEntity->Position), 0.1f);
     ImGui::Separator();
     ImGui::ColorEdit4("Color", glm::value_ptr(Context->LightEntity->Color));
 

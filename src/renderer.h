@@ -30,7 +30,7 @@ struct rectangle_mesh {
 };
 
 struct cube_mesh {
-    float Vertices[108];
+    float Vertices[216];
 
     GLuint VAO;
     GLuint VBO;
@@ -44,6 +44,7 @@ struct uniform_locators {
 
     GLuint EntityColorUniformLoc;
     GLuint LightColorUniformLoc;
+    GLuint LightPositionUniformLoc;
 };
 
 struct renderer {
