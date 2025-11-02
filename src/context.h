@@ -12,7 +12,7 @@ struct context {
 
     camera *Camera;
     entity *Entity;
-    entity *LightEntity;
+    light_entity *LightEntity;
 
     float DeltaTime;
     float LastFrame;

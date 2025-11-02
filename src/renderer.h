@@ -46,6 +46,8 @@ struct uniform_locators {
     GLuint LightColorUniformLoc;
     GLuint LightPositionUniformLoc;
     GLuint ViewPositionUniformLoc;
+    GLuint AmbientStrengthUniformLoc;
+    GLuint SpecularStrengthUniformLoc;
 };
 
 struct renderer {
@@ -65,7 +67,8 @@ void DrawRectangle(renderer *Renderer, glm::vec<3, float> position);
 void DrawCube(renderer *Renderer, glm::vec<3, float> Position,
               glm::vec<4, float> Color);
 void DrawLight(renderer *Renderer, glm::vec<3, float> Position,
-               glm::vec<4, float> Color);
+               glm::vec<4, float> Color, float AmbientStrength,
+               float SpecularStrength);
 void ClearBackground(float R, float G, float B, float Alpha);
 void BeginMode3D(renderer *Renderer, camera *Camera, float ScreenWidth,
                  float ScreenHeight);

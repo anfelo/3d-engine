@@ -11,4 +11,19 @@ struct entity {
     glm::vec4 Color;
 };
 
+struct light_entity {
+    union {
+        struct entity Entity;
+        struct {
+            glm::vec3 Position;
+            glm::vec3 Scale;
+            glm::vec3 Rotation;
+            glm::vec4 Color;
+        };
+    };
+
+    float AmbientStrength;
+    float SpecularStrength;
+};
+
 #endif

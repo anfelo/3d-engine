@@ -36,8 +36,19 @@ void GuiDraw(context *Context) {
     ImGui::Text("Light");
     ImGui::DragFloat3("Position",
                       glm::value_ptr(Context->LightEntity->Position), 0.1f);
-    ImGui::Separator();
     ImGui::ColorEdit4("Color", glm::value_ptr(Context->LightEntity->Color));
+
+    ImGui::Separator();
+
+    ImGui::Text("Ambient");
+    ImGui::DragFloat("Ambient Strength", &Context->LightEntity->AmbientStrength,
+                     0.01f, 0.0f, 1.0f);
+
+    ImGui::Separator();
+
+    ImGui::Text("Specular");
+    ImGui::DragFloat("Specular Strength",
+                     &Context->LightEntity->SpecularStrength, 0.01f, 0.0f, 1.0f);
 
     ImGui::End();
 

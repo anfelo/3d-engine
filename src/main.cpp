@@ -71,11 +71,16 @@ int main() {
         .Rotation = glm::vec3(0.0f),
         .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
     };
-    entity LightEntity = {
-        .Position = glm::vec3(1.2f, 1.0f, 2.0f),
-        .Scale = glm::vec3(0.0f),
-        .Rotation = glm::vec3(0.0f),
-        .Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+    light_entity LightEntity = {
+        .Entity =
+            {
+                .Position = glm::vec3(1.2f, 1.0f, 2.0f),
+                .Scale = glm::vec3(0.0f),
+                .Rotation = glm::vec3(0.0f),
+                .Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            },
+        .AmbientStrength = 0.1f,
+        .SpecularStrength = 0.5,
     };
     Context.Entity = &Entity;
     Context.LightEntity = &LightEntity;
@@ -107,7 +112,8 @@ int main() {
         BeginMode3D(&Renderer, Context.Camera, Context.ScreenWidth,
                     Context.ScreenHeight);
 
-        DrawLight(&Renderer, LightEntity.Position, LightEntity.Color);
+        DrawLight(&Renderer, LightEntity.Position, LightEntity.Color,
+                  LightEntity.AmbientStrength, LightEntity.SpecularStrength);
         DrawCube(&Renderer, Entity.Position, Entity.Color);
 
         // TODO: End the camera 3d rendering

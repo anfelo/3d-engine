@@ -202,6 +202,10 @@ renderer RendererCreate() {
         glGetUniformLocation(Renderer.ShaderProgram.ID, "u_light_pos");
     Renderer.Uniforms.ViewPositionUniformLoc =
         glGetUniformLocation(Renderer.ShaderProgram.ID, "u_view_pos");
+    Renderer.Uniforms.AmbientStrengthUniformLoc =
+        glGetUniformLocation(Renderer.ShaderProgram.ID, "u_ambient_strength");
+    Renderer.Uniforms.SpecularStrengthUniformLoc =
+        glGetUniformLocation(Renderer.ShaderProgram.ID, "u_specular_strength");
 
     return Renderer;
 }
@@ -293,7 +297,8 @@ void DrawCube(renderer *Renderer, glm::vec<3, float> Position,
 }
 
 void DrawLight(renderer *Renderer, glm::vec<3, float> Position,
-               glm::vec<4, float> Color) {
+               glm::vec<4, float> Color, float AmbientStrength,
+               float SpecularStrength) {
     glm::vec3 LightColor = glm::vec3(Color[0], Color[1], Color[2]);
     glUniform3fv(Renderer->Uniforms.LightColorUniformLoc, 1,
                  glm::value_ptr(LightColor));
@@ -301,6 +306,11 @@ void DrawLight(renderer *Renderer, glm::vec<3, float> Position,
     glm::vec3 LightPos = glm::vec3(Position[0], Position[1], Position[2]);
     glUniform3fv(Renderer->Uniforms.LightPositionUniformLoc, 1,
                  glm::value_ptr(LightPos));
+
+    glUniform1fv(Renderer->Uniforms.AmbientStrengthUniformLoc, 1,
+                 &AmbientStrength);
+    glUniform1fv(Renderer->Uniforms.SpecularStrengthUniformLoc, 1,
+                 &SpecularStrength);
 }
 
 void BeginMode3D(renderer *Renderer, camera *Camera, float ScreenWidth,
