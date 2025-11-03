@@ -70,12 +70,13 @@ int main() {
         .Scale = glm::vec3(0.0f),
         .Rotation = glm::vec3(0.0f),
         .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
+        .IsSelected = false,
     };
     light_entity LightEntity = {
         .Entity =
             {
                 .Position = glm::vec3(1.2f, 1.0f, 2.0f),
-                .Scale = glm::vec3(0.0f),
+                .Scale = glm::vec3(1.0f),
                 .Rotation = glm::vec3(0.0f),
                 .Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
             },
@@ -114,7 +115,8 @@ int main() {
 
         DrawLight(&Renderer, LightEntity.Position, LightEntity.Color,
                   LightEntity.AmbientStrength, LightEntity.SpecularStrength);
-        DrawCube(&Renderer, Entity.Position, Entity.Color);
+
+        DrawCube(&Renderer, Entity.Position, Entity.Color, Entity.IsSelected);
 
         // TODO: End the camera 3d rendering
         // EndMode3D();

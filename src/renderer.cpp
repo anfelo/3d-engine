@@ -30,6 +30,9 @@ renderer RendererCreate() {
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_STENCIL_TEST);
+    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     renderer Renderer;
     Renderer = {
@@ -74,59 +77,13 @@ renderer RendererCreate() {
             0.0f,  1.0f,  0.0f,  0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
             0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  -0.5f, 0.5f,  0.5f,
             0.0f,  1.0f,  0.0f,  -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f}},
-        .Uniforms{0},
     };
 
-    std::string vertex_code =
-        GetFileContents("./resources/shaders/default.vert");
-    std::string fragment_code =
-        GetFileContents("resources/shaders/default.frag");
-
-    const char *VertexShaderSource = vertex_code.c_str();
-    const char *FragmentShaderSource = fragment_code.c_str();
-
-    // build and compile our shader program
-    // ------------------------------------
-    // vertex shader
-    GLuint VertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(VertexShader, 1, &VertexShaderSource, NULL);
-    glCompileShader(VertexShader);
-    // check for shader compile errors
-    int Success;
-    char InfoLog[512];
-    glGetShaderiv(VertexShader, GL_COMPILE_STATUS, &Success);
-    if (!Success) {
-        glGetShaderInfoLog(VertexShader, 512, NULL, InfoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
-                  << InfoLog << std::endl;
-    }
-
-    // fragment shader
-    GLuint FragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(FragmentShader, 1, &FragmentShaderSource, NULL);
-    glCompileShader(FragmentShader);
-    // check for shader compile errors
-    glGetShaderiv(FragmentShader, GL_COMPILE_STATUS, &Success);
-    if (!Success) {
-        glGetShaderInfoLog(FragmentShader, 512, NULL, InfoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
-                  << InfoLog << std::endl;
-    }
-
-    // link shaders
-    Renderer.ShaderProgram.ID = glCreateProgram();
-    glAttachShader(Renderer.ShaderProgram.ID, VertexShader);
-    glAttachShader(Renderer.ShaderProgram.ID, FragmentShader);
-    glLinkProgram(Renderer.ShaderProgram.ID);
-    // check for linking errors
-    glGetProgramiv(Renderer.ShaderProgram.ID, GL_LINK_STATUS, &Success);
-    if (!Success) {
-        glGetProgramInfoLog(Renderer.ShaderProgram.ID, 512, NULL, InfoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
-                  << InfoLog << std::endl;
-    }
-    glDeleteShader(VertexShader);
-    glDeleteShader(FragmentShader);
+    ShaderCreate(&Renderer.ShaderProgram, "./resources/shaders/default.vert",
+                 "./resources/shaders/default.frag");
+    ShaderCreate(&Renderer.OutlineShaderProgram,
+                 "./resources/shaders/default.vert",
+                 "./resources/shaders/outline.frag");
 
     // ### Triangle ###
     glGenBuffers(1, &Renderer.TriangleMesh.VBO);
@@ -187,26 +144,6 @@ renderer RendererCreate() {
 
     glBindVertexArray(0);
 
-    Renderer.Uniforms.ModelUniformLoc =
-        glGetUniformLocation(Renderer.ShaderProgram.ID, "u_model");
-    Renderer.Uniforms.ViewUniformLoc =
-        glGetUniformLocation(Renderer.ShaderProgram.ID, "u_view");
-    Renderer.Uniforms.ProjectionUniformLoc =
-        glGetUniformLocation(Renderer.ShaderProgram.ID, "u_projection");
-
-    Renderer.Uniforms.EntityColorUniformLoc =
-        glGetUniformLocation(Renderer.ShaderProgram.ID, "u_entity_color");
-    Renderer.Uniforms.LightColorUniformLoc =
-        glGetUniformLocation(Renderer.ShaderProgram.ID, "u_light_color");
-    Renderer.Uniforms.LightPositionUniformLoc =
-        glGetUniformLocation(Renderer.ShaderProgram.ID, "u_light_pos");
-    Renderer.Uniforms.ViewPositionUniformLoc =
-        glGetUniformLocation(Renderer.ShaderProgram.ID, "u_view_pos");
-    Renderer.Uniforms.AmbientStrengthUniformLoc =
-        glGetUniformLocation(Renderer.ShaderProgram.ID, "u_ambient_strength");
-    Renderer.Uniforms.SpecularStrengthUniformLoc =
-        glGetUniformLocation(Renderer.ShaderProgram.ID, "u_specular_strength");
-
     return Renderer;
 }
 
@@ -221,9 +158,84 @@ void RendererDestroy(renderer *Renderer) {
     glDeleteProgram(Renderer->ShaderProgram.ID);
 }
 
+void ShaderCreate(shader_program *Shader, const char *VertexFile,
+                  const char *FragmentFile) {
+    std::string vertex_code = GetFileContents(VertexFile);
+    std::string fragment_code = GetFileContents(FragmentFile);
+
+    const char *VertexShaderSource = vertex_code.c_str();
+    const char *FragmentShaderSource = fragment_code.c_str();
+
+    // build and compile our shader program
+    // ------------------------------------
+    // vertex shader
+    GLuint VertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(VertexShader, 1, &VertexShaderSource, NULL);
+    glCompileShader(VertexShader);
+
+    // check for shader compile errors
+    int Success;
+    char InfoLog[512];
+    glGetShaderiv(VertexShader, GL_COMPILE_STATUS, &Success);
+    if (!Success) {
+        glGetShaderInfoLog(VertexShader, 512, NULL, InfoLog);
+        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
+                  << InfoLog << std::endl;
+    }
+
+    // fragment shader
+    GLuint FragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(FragmentShader, 1, &FragmentShaderSource, NULL);
+    glCompileShader(FragmentShader);
+    // check for shader compile errors
+    glGetShaderiv(FragmentShader, GL_COMPILE_STATUS, &Success);
+    if (!Success) {
+        glGetShaderInfoLog(FragmentShader, 512, NULL, InfoLog);
+        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
+                  << InfoLog << std::endl;
+    }
+
+    // link shaders
+    Shader->ID = glCreateProgram();
+    glAttachShader(Shader->ID, VertexShader);
+    glAttachShader(Shader->ID, FragmentShader);
+    glLinkProgram(Shader->ID);
+    // check for linking errors
+    glGetProgramiv(Shader->ID, GL_LINK_STATUS, &Success);
+    if (!Success) {
+        glGetProgramInfoLog(Shader->ID, 512, NULL, InfoLog);
+        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
+                  << InfoLog << std::endl;
+    }
+    glDeleteShader(VertexShader);
+    glDeleteShader(FragmentShader);
+
+    Shader->Uniforms.ModelUniformLoc =
+        glGetUniformLocation(Shader->ID, "u_model");
+    Shader->Uniforms.ViewUniformLoc =
+        glGetUniformLocation(Shader->ID, "u_view");
+    Shader->Uniforms.ProjectionUniformLoc =
+        glGetUniformLocation(Shader->ID, "u_projection");
+
+    // Fragment Shader Uniform Locators
+    // INFO: This are only set on the normal shader
+    Shader->Uniforms.EntityColorUniformLoc =
+        glGetUniformLocation(Shader->ID, "u_entity_color");
+    Shader->Uniforms.LightColorUniformLoc =
+        glGetUniformLocation(Shader->ID, "u_light_color");
+    Shader->Uniforms.LightPositionUniformLoc =
+        glGetUniformLocation(Shader->ID, "u_light_pos");
+    Shader->Uniforms.ViewPositionUniformLoc =
+        glGetUniformLocation(Shader->ID, "u_view_pos");
+    Shader->Uniforms.AmbientStrengthUniformLoc =
+        glGetUniformLocation(Shader->ID, "u_ambient_strength");
+    Shader->Uniforms.SpecularStrengthUniformLoc =
+        glGetUniformLocation(Shader->ID, "u_specular_strength");
+}
+
 void ClearBackground(float R, float G, float B, float Alpha) {
     glClearColor(R, G, B, Alpha);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
 void DrawTriangle(renderer *Renderer, glm::vec<3, float> position) {
@@ -234,15 +246,15 @@ void DrawTriangle(renderer *Renderer, glm::vec<3, float> position) {
         glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
 
     // Sets the uniform value
-    glUniformMatrix4fv(Renderer->Uniforms.ViewUniformLoc, 1, GL_FALSE,
-                       glm::value_ptr(view));
-    glUniformMatrix4fv(Renderer->Uniforms.ProjectionUniformLoc, 1, GL_FALSE,
-                       glm::value_ptr(projection));
+    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ViewUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ProjectionUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(projection));
 
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, position);
-    glUniformMatrix4fv(Renderer->Uniforms.ModelUniformLoc, 1, GL_FALSE,
-                       glm::value_ptr(model));
+    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ModelUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(model));
 
     glUseProgram(Renderer->ShaderProgram.ID);
     glBindVertexArray(Renderer->TriangleMesh.VAO);
@@ -258,15 +270,15 @@ void DrawRectangle(renderer *Renderer, glm::vec<3, float> position) {
         glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
 
     // Sets the uniform value
-    glUniformMatrix4fv(Renderer->Uniforms.ViewUniformLoc, 1, GL_FALSE,
-                       glm::value_ptr(view));
-    glUniformMatrix4fv(Renderer->Uniforms.ProjectionUniformLoc, 1, GL_FALSE,
-                       glm::value_ptr(projection));
+    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ViewUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ProjectionUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(projection));
 
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, position);
-    glUniformMatrix4fv(Renderer->Uniforms.ModelUniformLoc, 1, GL_FALSE,
-                       glm::value_ptr(model));
+    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ModelUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(model));
 
     glUseProgram(Renderer->ShaderProgram.ID);
     glBindVertexArray(Renderer->RectangleMesh.VAO);
@@ -275,41 +287,77 @@ void DrawRectangle(renderer *Renderer, glm::vec<3, float> position) {
 }
 
 void DrawCube(renderer *Renderer, glm::vec<3, float> Position,
-              glm::vec<4, float> Color) {
+              glm::vec<4, float> Color, bool IsSelected) {
+    // 1st render pass
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    glStencilMask(0xFF);
+
+    glUseProgram(Renderer->ShaderProgram.ID);
+
     glm::vec3 CubeColor = glm::vec3(Color[0], Color[1], Color[2]);
-    glUniform3fv(Renderer->Uniforms.EntityColorUniformLoc, 1,
+    glUniform3fv(Renderer->ShaderProgram.Uniforms.EntityColorUniformLoc, 1,
                  glm::value_ptr(CubeColor));
 
     glm::mat4 Model = glm::mat4(1.0f);
     Model = glm::translate(Model, Position);
+    Model = glm::scale(Model, glm::vec3(1.0f));
     // TODO: Make the rotation work with the gui params
     float Angle = 20.0f;
     Model = glm::rotate(Model, glm::radians(Angle), glm::vec3(1.0f));
     Model =
         glm::rotate(Model, glm::radians(Angle), glm::vec3(1.0f, 1.0f, 1.0f));
-    glUniformMatrix4fv(Renderer->Uniforms.ModelUniformLoc, 1, GL_FALSE,
-                       glm::value_ptr(Model));
+    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ModelUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(Model));
 
-    glUseProgram(Renderer->ShaderProgram.ID);
     glBindVertexArray(Renderer->CubeMesh.VAO);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawArrays(GL_TRIANGLES, 0, 36);
+
+    if (IsSelected) {
+        // 2st render pass: draws the outline
+        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+        glStencilMask(0x00);
+        glDisable(GL_DEPTH_TEST);
+
+        glUseProgram(Renderer->OutlineShaderProgram.ID);
+
+        Model = glm::mat4(1.0f);
+        Model = glm::translate(Model, Position);
+        Model = glm::scale(Model, glm::vec3(1.02f));
+        // TODO: Make the rotation work with the gui params
+        Angle = 20.0f;
+        Model = glm::rotate(Model, glm::radians(Angle), glm::vec3(1.0f));
+        Model = glm::rotate(Model, glm::radians(Angle),
+                            glm::vec3(1.0f, 1.0f, 1.0f));
+        glUniformMatrix4fv(
+            Renderer->OutlineShaderProgram.Uniforms.ModelUniformLoc, 1,
+            GL_FALSE, glm::value_ptr(Model));
+
+        glBindVertexArray(Renderer->CubeMesh.VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        glStencilMask(0xFF);
+        glStencilFunc(GL_ALWAYS, 0, 0xFF);
+        glEnable(GL_DEPTH_TEST);
+    }
 }
 
 void DrawLight(renderer *Renderer, glm::vec<3, float> Position,
                glm::vec<4, float> Color, float AmbientStrength,
                float SpecularStrength) {
+    glUseProgram(Renderer->ShaderProgram.ID);
+
     glm::vec3 LightColor = glm::vec3(Color[0], Color[1], Color[2]);
-    glUniform3fv(Renderer->Uniforms.LightColorUniformLoc, 1,
+    glUniform3fv(Renderer->ShaderProgram.Uniforms.LightColorUniformLoc, 1,
                  glm::value_ptr(LightColor));
 
     glm::vec3 LightPos = glm::vec3(Position[0], Position[1], Position[2]);
-    glUniform3fv(Renderer->Uniforms.LightPositionUniformLoc, 1,
+    glUniform3fv(Renderer->ShaderProgram.Uniforms.LightPositionUniformLoc, 1,
                  glm::value_ptr(LightPos));
 
-    glUniform1fv(Renderer->Uniforms.AmbientStrengthUniformLoc, 1,
+    glUniform1fv(Renderer->ShaderProgram.Uniforms.AmbientStrengthUniformLoc, 1,
                  &AmbientStrength);
-    glUniform1fv(Renderer->Uniforms.SpecularStrengthUniformLoc, 1,
+    glUniform1fv(Renderer->ShaderProgram.Uniforms.SpecularStrengthUniformLoc, 1,
                  &SpecularStrength);
 }
 
@@ -319,12 +367,25 @@ void BeginMode3D(renderer *Renderer, camera *Camera, float ScreenWidth,
     glm::mat4 Projection = glm::perspective(
         glm::radians(Camera->Zoom), ScreenWidth / ScreenHeight, 0.1f, 100.0f);
 
-    // Sets the uniform value
-    glUniformMatrix4fv(Renderer->Uniforms.ViewUniformLoc, 1, GL_FALSE,
-                       glm::value_ptr(View));
-    glUniformMatrix4fv(Renderer->Uniforms.ProjectionUniformLoc, 1, GL_FALSE,
-                       glm::value_ptr(Projection));
+    // Set view & projection for normal shader
+    glUseProgram(Renderer->ShaderProgram.ID);
+    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ViewUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(View));
+    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ProjectionUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(Projection));
 
-    glUniform3fv(Renderer->Uniforms.ViewPositionUniformLoc, 1,
+    glUniform3fv(Renderer->ShaderProgram.Uniforms.ViewPositionUniformLoc, 1,
                  glm::value_ptr(Camera->Position));
+
+    // Set view & projection for outline shader
+    glUseProgram(Renderer->OutlineShaderProgram.ID);
+    // Sets the uniform value
+    glUniformMatrix4fv(Renderer->OutlineShaderProgram.Uniforms.ViewUniformLoc,
+                       1, GL_FALSE, glm::value_ptr(View));
+    glUniformMatrix4fv(
+        Renderer->OutlineShaderProgram.Uniforms.ProjectionUniformLoc, 1,
+        GL_FALSE, glm::value_ptr(Projection));
+
+    glUniform3fv(Renderer->OutlineShaderProgram.Uniforms.ViewPositionUniformLoc,
+                 1, glm::value_ptr(Camera->Position));
 }

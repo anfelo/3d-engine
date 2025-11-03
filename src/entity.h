@@ -9,6 +9,7 @@ struct entity {
     glm::vec3 Scale;
     glm::vec3 Rotation;
     glm::vec4 Color;
+    bool IsSelected;
 };
 
 struct light_entity {
@@ -19,6 +20,7 @@ struct light_entity {
             glm::vec3 Scale;
             glm::vec3 Rotation;
             glm::vec4 Color;
+            bool IsSelected;
         };
     };
 

@@ -1,5 +1,6 @@
 #include "gui.h"
 #include "glm/gtc/type_ptr.hpp"
+#include "imgui/imgui.h"
 
 gui GuiCreate(context *Context) {
     // Setup Dear ImGui context
@@ -24,6 +25,7 @@ void GuiDraw(context *Context) {
     // Entity Properties
     ImGui::Begin("Entity Properties");
     ImGui::Text("Entity");
+    ImGui::Checkbox("Selected", &Context->Entity->IsSelected);
     ImGui::DragFloat3("Position", glm::value_ptr(Context->Entity->Position),
                       0.1f);
     ImGui::Separator();
@@ -48,7 +50,8 @@ void GuiDraw(context *Context) {
 
     ImGui::Text("Specular");
     ImGui::DragFloat("Specular Strength",
-                     &Context->LightEntity->SpecularStrength, 0.01f, 0.0f, 1.0f);
+                     &Context->LightEntity->SpecularStrength, 0.01f, 0.0f,
+                     1.0f);
 
     ImGui::End();
 

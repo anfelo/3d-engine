@@ -8,10 +8,6 @@
 #include <glm/glm.hpp>
 #include <iostream>
 
-struct shader_program {
-    GLuint ID;
-};
-
 struct triangle_mesh {
     float Vertices[9];
 
@@ -50,22 +46,29 @@ struct uniform_locators {
     GLuint SpecularStrengthUniformLoc;
 };
 
-struct renderer {
-    shader_program ShaderProgram;
-
-    triangle_mesh TriangleMesh;
-    rectangle_mesh RectangleMesh;
-    cube_mesh CubeMesh;
+struct shader_program {
+    GLuint ID;
 
     uniform_locators Uniforms;
 };
 
+struct renderer {
+    shader_program ShaderProgram;
+    shader_program OutlineShaderProgram;
+
+    triangle_mesh TriangleMesh;
+    rectangle_mesh RectangleMesh;
+    cube_mesh CubeMesh;
+};
+
 renderer RendererCreate(void);
 void RendererDestroy(renderer *Renderer);
+void ShaderCreate(shader_program *Shader, const char *VertexFile,
+                  const char *FragmentFile);
 void DrawTriangle(renderer *Renderer, glm::vec<3, float> position);
 void DrawRectangle(renderer *Renderer, glm::vec<3, float> position);
 void DrawCube(renderer *Renderer, glm::vec<3, float> Position,
-              glm::vec<4, float> Color);
+              glm::vec<4, float> Color, bool IsSelected);
 void DrawLight(renderer *Renderer, glm::vec<3, float> Position,
                glm::vec<4, float> Color, float AmbientStrength,
                float SpecularStrength);
