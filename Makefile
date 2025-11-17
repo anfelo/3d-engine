@@ -4,14 +4,25 @@ RESOURCES_DIR = resources
 C_FILES = ./src/*.c ./src/*.cpp ./src/imgui/*.cpp
 CFLAGS = -Wall -g -O0 -std=c++17
 
-APP_DEFINES:=
-APP_INCLUDES:= -I/usr/local/include -L/usr/local/lib -lglfw -lassimp -framework GLUT -framework OpenGL -Wl,-rpath,/usr/local/lib
+UNAME_S := $(shell uname -s)
+
+ifeq ($(UNAME_S), Linux)
+	INCLUDES = -I/usr/include -I/usr/local/include
+	LDFLAGS = -L/usr/lib -L/usr/local/lib
+	LIBS = -lglfw -lGL -ldl -lassimp -Wl,-rpath,/usr/local/lib
+endif
+
+ifeq ($(UNAME_S), Darwin)
+	INCLUDES = -I/usr/include -I/usr/local/include
+	LDFLAGS = -L/usr/lib -L/usr/local/lib
+	LIBS = -lglfw -lassimp -framework GLUT -framework OpenGL -Wl,-rpath,/usr/local/lib
+endif
 
 all: build copy_resources
 
 build:
 	mkdir -p $(BUILD_DIR)
-	clang++ $(CFLAGS) $(C_FILES) -o $(BUILD_DIR)/$(APP_NAME) $(APP_INCLUDES)
+	clang++ $(CFLAGS) $(C_FILES) -o $(BUILD_DIR)/$(APP_NAME) $(INCLUDES) $(LDFLAGS) $(LIBS)
 
 copy_resources:
 	cp -r $(RESOURCES_DIR) $(BUILD_DIR)/
