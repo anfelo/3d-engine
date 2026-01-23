@@ -61,7 +61,7 @@ int main() {
     }
 
     gui Gui = GuiCreate(&Context);
-    renderer Renderer = RendererCreate();
+    renderer Renderer = Renderer_Create();
     camera Camera = CameraCreate(glm::vec3(0.0f, 0.0f, 3.0f),
                                  glm::vec3(0.0f, 1.0f, 0.0f), YAW, PITCH);
 
@@ -108,18 +108,20 @@ int main() {
 
         // render
         // ------
-        ClearBackground(0.1f, 0.1f, 0.1f, 1.0f);
+        Renderer_ClearBackground(0.1f, 0.1f, 0.1f, 1.0f);
 
-        BeginMode3D(&Renderer, Context.Camera, Context.ScreenWidth,
-                    Context.ScreenHeight);
+        Renderer_BeginMode3D(&Renderer, Context.Camera, Context.ScreenWidth,
+                             Context.ScreenHeight);
 
-        DrawLight(&Renderer, LightEntity.Position, LightEntity.Color,
-                  LightEntity.AmbientStrength, LightEntity.SpecularStrength);
+        Renderer_DrawLight(&Renderer, LightEntity.Position, LightEntity.Color,
+                           LightEntity.AmbientStrength,
+                           LightEntity.SpecularStrength);
 
-        DrawCube(&Renderer, Entity.Position, Entity.Color, Entity.IsSelected);
+        Renderer_DrawCube(&Renderer, Entity.Position, Entity.Color,
+                          Entity.IsSelected);
 
         // TODO: End the camera 3d rendering
-        // EndMode3D();
+        // Renderer_EndMode3D();
 
         // gui
         // ------
@@ -133,7 +135,7 @@ int main() {
     }
 
     GuiDestroy();
-    RendererDestroy(&Renderer);
+    Renderer_Destroy(&Renderer);
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------

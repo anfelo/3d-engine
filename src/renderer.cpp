@@ -6,11 +6,16 @@
 #include <cerrno>
 
 #include "camera.h"
+#include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/trigonometric.hpp"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+triangle_mesh TriangleMesh = Renderer_GetTriangleMesh();
+quad_mesh QuadMesh = Renderer_GetQuadMesh();
+cube_mesh CubeMesh = Renderer_GetCubeMesh();
 
 std::string GetFileContents(const char *Filename) {
     std::ifstream in(Filename, std::ios::binary);
@@ -26,7 +31,7 @@ std::string GetFileContents(const char *Filename) {
     throw errno;
 }
 
-renderer RendererCreate() {
+renderer Renderer_Create() {
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
@@ -35,66 +40,21 @@ renderer RendererCreate() {
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     renderer Renderer;
-    Renderer = {
-        .TriangleMesh{
-            .Vertices{-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f},
-        },
-        .RectangleMesh{.Vertices{
-                           0.5f, 0.5f, 0.0f,   // top right
-                           0.5f, -0.5f, 0.0f,  // bottom right
-                           -0.5f, -0.5f, 0.0f, // bottom left
-                           -0.5f, 0.5f, 0.0f   // top left
-                       },
-                       .Indices{0, 1, 3, 1, 2, 3}},
-
-        .CubeMesh{.Vertices{
-            -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.5f,  -0.5f, -0.5f,
-            0.0f,  0.0f,  -1.0f, 0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f,
-            0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, -0.5f, 0.5f,  -0.5f,
-            0.0f,  0.0f,  -1.0f, -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f,
-
-            -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.5f,  -0.5f, 0.5f,
-            0.0f,  0.0f,  1.0f,  0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
-            0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  -0.5f, 0.5f,  0.5f,
-            0.0f,  0.0f,  1.0f,  -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,
-
-            -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  -0.5f, 0.5f,  -0.5f,
-            -1.0f, 0.0f,  0.0f,  -0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f,
-            -0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f,  -0.5f, -0.5f, 0.5f,
-            -1.0f, 0.0f,  0.0f,  -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,
-
-            0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.5f,  0.5f,  -0.5f,
-            1.0f,  0.0f,  0.0f,  0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,
-            0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,  0.5f,  -0.5f, 0.5f,
-            1.0f,  0.0f,  0.0f,  0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-
-            -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.5f,  -0.5f, -0.5f,
-            0.0f,  -1.0f, 0.0f,  0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,
-            0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,  -0.5f, -0.5f, 0.5f,
-            0.0f,  -1.0f, 0.0f,  -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,
-
-            -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.5f,  0.5f,  -0.5f,
-            0.0f,  1.0f,  0.0f,  0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-            0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  -0.5f, 0.5f,  0.5f,
-            0.0f,  1.0f,  0.0f,  -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f}},
-    };
-
-    ShaderCreate(&Renderer.ShaderProgram, "./resources/shaders/default.vert",
-                 "./resources/shaders/default.frag");
-    ShaderCreate(&Renderer.OutlineShaderProgram,
-                 "./resources/shaders/default.vert",
-                 "./resources/shaders/outline.frag");
+    Renderer.ShaderProgram = Renderer_CreateShaderProgram(
+        "./resources/shaders/default.vert", "./resources/shaders/default.frag");
+    Renderer.OutlineShaderProgram = Renderer_CreateShaderProgram(
+        "./resources/shaders/default.vert", "./resources/shaders/outline.frag");
 
     // ### Triangle ###
-    glGenBuffers(1, &Renderer.TriangleMesh.VBO);
-    glGenVertexArrays(1, &Renderer.TriangleMesh.VAO);
+    glGenBuffers(1, &TriangleMesh.VBO);
+    glGenVertexArrays(1, &TriangleMesh.VAO);
 
     // bind the Vertex Array Object first, then bind and set vertex buffer(s),
     // and then configure vertex attributes(s).
-    glBindVertexArray(Renderer.TriangleMesh.VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, Renderer.TriangleMesh.VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Renderer.TriangleMesh.Vertices),
-                 Renderer.TriangleMesh.Vertices, GL_STATIC_DRAW);
+    glBindVertexArray(TriangleMesh.VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, TriangleMesh.VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(TriangleMesh.Vertices),
+                 TriangleMesh.Vertices, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
                           (void *)0);
     glEnableVertexAttribArray(0);
@@ -102,21 +62,20 @@ renderer RendererCreate() {
     glBindVertexArray(0);
 
     // ### Rectangle ###
-    glGenBuffers(1, &Renderer.RectangleMesh.VBO);
-    glGenVertexArrays(1, &Renderer.RectangleMesh.VAO);
-    glGenBuffers(1, &Renderer.RectangleMesh.EBO);
+    glGenBuffers(1, &QuadMesh.VBO);
+    glGenVertexArrays(1, &QuadMesh.VAO);
+    glGenBuffers(1, &QuadMesh.EBO);
 
     // bind the Vertex Array Object first, then bind and set vertex buffer(s),
     // and then configure vertex attributes(s).
-    glBindVertexArray(Renderer.RectangleMesh.VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, Renderer.RectangleMesh.VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Renderer.RectangleMesh.Vertices),
-                 Renderer.RectangleMesh.Vertices, GL_STATIC_DRAW);
+    glBindVertexArray(QuadMesh.VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, QuadMesh.VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(QuadMesh.Vertices), QuadMesh.Vertices,
+                 GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, Renderer.RectangleMesh.EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 sizeof(Renderer.RectangleMesh.Indices),
-                 Renderer.RectangleMesh.Indices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, QuadMesh.EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(QuadMesh.Indices),
+                 QuadMesh.Indices, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
                           (void *)0);
@@ -125,15 +84,15 @@ renderer RendererCreate() {
     glBindVertexArray(0);
 
     // ### Cube ###
-    glGenBuffers(1, &Renderer.CubeMesh.VBO);
-    glGenVertexArrays(1, &Renderer.CubeMesh.VAO);
+    glGenBuffers(1, &CubeMesh.VBO);
+    glGenVertexArrays(1, &CubeMesh.VAO);
 
     // bind the Vertex Array Object first, then bind and set vertex buffer(s),
     // and then configure vertex attributes(s).
-    glBindVertexArray(Renderer.CubeMesh.VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, Renderer.CubeMesh.VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Renderer.CubeMesh.Vertices),
-                 Renderer.CubeMesh.Vertices, GL_STATIC_DRAW);
+    glBindVertexArray(CubeMesh.VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, CubeMesh.VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(CubeMesh.Vertices), CubeMesh.Vertices,
+                 GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
                           (void *)0);
     glEnableVertexAttribArray(0);
@@ -147,19 +106,21 @@ renderer RendererCreate() {
     return Renderer;
 }
 
-void RendererDestroy(renderer *Renderer) {
-    glDeleteVertexArrays(1, &Renderer->TriangleMesh.VAO);
-    glDeleteBuffers(1, &Renderer->TriangleMesh.VBO);
+void Renderer_Destroy(renderer *Renderer) {
+    glDeleteVertexArrays(1, &TriangleMesh.VAO);
+    glDeleteBuffers(1, &TriangleMesh.VBO);
 
-    glDeleteVertexArrays(1, &Renderer->RectangleMesh.VAO);
-    glDeleteBuffers(1, &Renderer->RectangleMesh.VBO);
-    glDeleteBuffers(1, &Renderer->RectangleMesh.EBO);
+    glDeleteVertexArrays(1, &QuadMesh.VAO);
+    glDeleteBuffers(1, &QuadMesh.VBO);
+    glDeleteBuffers(1, &QuadMesh.EBO);
 
     glDeleteProgram(Renderer->ShaderProgram.ID);
 }
 
-void ShaderCreate(shader_program *Shader, const char *VertexFile,
-                  const char *FragmentFile) {
+shader_program Renderer_CreateShaderProgram(const char *VertexFile,
+                                            const char *FragmentFile) {
+    shader_program ShaderProgram;
+
     std::string vertex_code = GetFileContents(VertexFile);
     std::string fragment_code = GetFileContents(FragmentFile);
 
@@ -196,49 +157,51 @@ void ShaderCreate(shader_program *Shader, const char *VertexFile,
     }
 
     // link shaders
-    Shader->ID = glCreateProgram();
-    glAttachShader(Shader->ID, VertexShader);
-    glAttachShader(Shader->ID, FragmentShader);
-    glLinkProgram(Shader->ID);
+    ShaderProgram.ID = glCreateProgram();
+    glAttachShader(ShaderProgram.ID, VertexShader);
+    glAttachShader(ShaderProgram.ID, FragmentShader);
+    glLinkProgram(ShaderProgram.ID);
     // check for linking errors
-    glGetProgramiv(Shader->ID, GL_LINK_STATUS, &Success);
+    glGetProgramiv(ShaderProgram.ID, GL_LINK_STATUS, &Success);
     if (!Success) {
-        glGetProgramInfoLog(Shader->ID, 512, NULL, InfoLog);
+        glGetProgramInfoLog(ShaderProgram.ID, 512, NULL, InfoLog);
         std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n"
                   << InfoLog << std::endl;
     }
     glDeleteShader(VertexShader);
     glDeleteShader(FragmentShader);
 
-    Shader->Uniforms.ModelUniformLoc =
-        glGetUniformLocation(Shader->ID, "u_model");
-    Shader->Uniforms.ViewUniformLoc =
-        glGetUniformLocation(Shader->ID, "u_view");
-    Shader->Uniforms.ProjectionUniformLoc =
-        glGetUniformLocation(Shader->ID, "u_projection");
+    ShaderProgram.Uniforms.ModelUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_model");
+    ShaderProgram.Uniforms.ViewUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_view");
+    ShaderProgram.Uniforms.ProjectionUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_projection");
 
     // Fragment Shader Uniform Locators
     // INFO: This are only set on the normal shader
-    Shader->Uniforms.EntityColorUniformLoc =
-        glGetUniformLocation(Shader->ID, "u_entity_color");
-    Shader->Uniforms.LightColorUniformLoc =
-        glGetUniformLocation(Shader->ID, "u_light_color");
-    Shader->Uniforms.LightPositionUniformLoc =
-        glGetUniformLocation(Shader->ID, "u_light_pos");
-    Shader->Uniforms.ViewPositionUniformLoc =
-        glGetUniformLocation(Shader->ID, "u_view_pos");
-    Shader->Uniforms.AmbientStrengthUniformLoc =
-        glGetUniformLocation(Shader->ID, "u_ambient_strength");
-    Shader->Uniforms.SpecularStrengthUniformLoc =
-        glGetUniformLocation(Shader->ID, "u_specular_strength");
+    ShaderProgram.Uniforms.EntityColorUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_entity_color");
+    ShaderProgram.Uniforms.LightColorUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_light_color");
+    ShaderProgram.Uniforms.LightPositionUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_light_pos");
+    ShaderProgram.Uniforms.ViewPositionUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_view_pos");
+    ShaderProgram.Uniforms.AmbientStrengthUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_ambient_strength");
+    ShaderProgram.Uniforms.SpecularStrengthUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_specular_strength");
+
+    return ShaderProgram;
 }
 
-void ClearBackground(float R, float G, float B, float Alpha) {
+void Renderer_ClearBackground(float R, float G, float B, float Alpha) {
     glClearColor(R, G, B, Alpha);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
-void DrawTriangle(renderer *Renderer, glm::vec<3, float> position) {
+void Renderer_DrawTriangle(renderer *Renderer, glm::vec<3, float> position) {
     glm::mat4 view = glm::mat4(1.0f);
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
     glm::mat4 projection;
@@ -257,12 +220,12 @@ void DrawTriangle(renderer *Renderer, glm::vec<3, float> position) {
                        GL_FALSE, glm::value_ptr(model));
 
     glUseProgram(Renderer->ShaderProgram.ID);
-    glBindVertexArray(Renderer->TriangleMesh.VAO);
+    glBindVertexArray(TriangleMesh.VAO);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
-void DrawRectangle(renderer *Renderer, glm::vec<3, float> position) {
+void Renderer_DrawQuad(renderer *Renderer, glm::vec<3, float> position) {
     glm::mat4 view = glm::mat4(1.0f);
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
     glm::mat4 projection;
@@ -281,13 +244,13 @@ void DrawRectangle(renderer *Renderer, glm::vec<3, float> position) {
                        GL_FALSE, glm::value_ptr(model));
 
     glUseProgram(Renderer->ShaderProgram.ID);
-    glBindVertexArray(Renderer->RectangleMesh.VAO);
+    glBindVertexArray(QuadMesh.VAO);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-void DrawCube(renderer *Renderer, glm::vec<3, float> Position,
-              glm::vec<4, float> Color, bool IsSelected) {
+void Renderer_DrawCube(renderer *Renderer, glm::vec<3, float> Position,
+                       glm::vec<4, float> Color, bool IsSelected) {
     // 1st render pass
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glStencilMask(0xFF);
@@ -309,7 +272,7 @@ void DrawCube(renderer *Renderer, glm::vec<3, float> Position,
     glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ModelUniformLoc, 1,
                        GL_FALSE, glm::value_ptr(Model));
 
-    glBindVertexArray(Renderer->CubeMesh.VAO);
+    glBindVertexArray(CubeMesh.VAO);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
@@ -333,7 +296,7 @@ void DrawCube(renderer *Renderer, glm::vec<3, float> Position,
             Renderer->OutlineShaderProgram.Uniforms.ModelUniformLoc, 1,
             GL_FALSE, glm::value_ptr(Model));
 
-        glBindVertexArray(Renderer->CubeMesh.VAO);
+        glBindVertexArray(CubeMesh.VAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         glStencilMask(0xFF);
@@ -342,9 +305,9 @@ void DrawCube(renderer *Renderer, glm::vec<3, float> Position,
     }
 }
 
-void DrawLight(renderer *Renderer, glm::vec<3, float> Position,
-               glm::vec<4, float> Color, float AmbientStrength,
-               float SpecularStrength) {
+void Renderer_DrawLight(renderer *Renderer, glm::vec<3, float> Position,
+                        glm::vec<4, float> Color, float AmbientStrength,
+                        float SpecularStrength) {
     glUseProgram(Renderer->ShaderProgram.ID);
 
     glm::vec3 LightColor = glm::vec3(Color[0], Color[1], Color[2]);
@@ -361,8 +324,8 @@ void DrawLight(renderer *Renderer, glm::vec<3, float> Position,
                  &SpecularStrength);
 }
 
-void BeginMode3D(renderer *Renderer, camera *Camera, float ScreenWidth,
-                 float ScreenHeight) {
+void Renderer_BeginMode3D(renderer *Renderer, camera *Camera, float ScreenWidth,
+                          float ScreenHeight) {
     glm::mat4 View = CameraGetViewMatrix(Camera);
     glm::mat4 Projection = glm::perspective(
         glm::radians(Camera->Zoom), ScreenWidth / ScreenHeight, 0.1f, 100.0f);
@@ -388,4 +351,58 @@ void BeginMode3D(renderer *Renderer, camera *Camera, float ScreenWidth,
 
     glUniform3fv(Renderer->OutlineShaderProgram.Uniforms.ViewPositionUniformLoc,
                  1, glm::value_ptr(Camera->Position));
+}
+
+triangle_mesh Renderer_GetTriangleMesh() {
+    return triangle_mesh{
+        .Vertices{-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f},
+    };
+}
+
+quad_mesh Renderer_GetQuadMesh() {
+    return quad_mesh{
+        .Vertices{
+            0.5f, 0.5f, 0.0f,   // top right
+            0.5f, -0.5f, 0.0f,  // bottom right
+            -0.5f, -0.5f, 0.0f, // bottom left
+            -0.5f, 0.5f, 0.0f   // top left
+        },
+        .Indices{0, 1, 3, 1, 2, 3},
+    };
+}
+
+cube_mesh Renderer_GetCubeMesh() {
+    return cube_mesh{
+        .Vertices{
+            -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.5f,  -0.5f, -0.5f,
+            0.0f,  0.0f,  -1.0f, 0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f,
+            0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, -0.5f, 0.5f,  -0.5f,
+            0.0f,  0.0f,  -1.0f, -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f,
+
+            -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.5f,  -0.5f, 0.5f,
+            0.0f,  0.0f,  1.0f,  0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  -0.5f, 0.5f,  0.5f,
+            0.0f,  0.0f,  1.0f,  -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,
+
+            -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  -0.5f, 0.5f,  -0.5f,
+            -1.0f, 0.0f,  0.0f,  -0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f,
+            -0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f,  -0.5f, -0.5f, 0.5f,
+            -1.0f, 0.0f,  0.0f,  -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,
+
+            0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.5f,  0.5f,  -0.5f,
+            1.0f,  0.0f,  0.0f,  0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,
+            0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,  0.5f,  -0.5f, 0.5f,
+            1.0f,  0.0f,  0.0f,  0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+
+            -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.5f,  -0.5f, -0.5f,
+            0.0f,  -1.0f, 0.0f,  0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,
+            0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,  -0.5f, -0.5f, 0.5f,
+            0.0f,  -1.0f, 0.0f,  -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,
+
+            -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.5f,  0.5f,  -0.5f,
+            0.0f,  1.0f,  0.0f,  0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+            0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  -0.5f, 0.5f,  0.5f,
+            0.0f,  1.0f,  0.0f,  -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,
+        },
+    };
 }

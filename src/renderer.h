@@ -16,7 +16,7 @@ struct triangle_mesh {
     GLuint EBO;
 };
 
-struct rectangle_mesh {
+struct quad_mesh {
     float Vertices[12];
     GLuint Indices[6];
 
@@ -55,25 +55,25 @@ struct shader_program {
 struct renderer {
     shader_program ShaderProgram;
     shader_program OutlineShaderProgram;
-
-    triangle_mesh TriangleMesh;
-    rectangle_mesh RectangleMesh;
-    cube_mesh CubeMesh;
 };
 
-renderer RendererCreate(void);
-void RendererDestroy(renderer *Renderer);
-void ShaderCreate(shader_program *Shader, const char *VertexFile,
-                  const char *FragmentFile);
-void DrawTriangle(renderer *Renderer, glm::vec<3, float> position);
-void DrawRectangle(renderer *Renderer, glm::vec<3, float> position);
-void DrawCube(renderer *Renderer, glm::vec<3, float> Position,
-              glm::vec<4, float> Color, bool IsSelected);
-void DrawLight(renderer *Renderer, glm::vec<3, float> Position,
-               glm::vec<4, float> Color, float AmbientStrength,
-               float SpecularStrength);
-void ClearBackground(float R, float G, float B, float Alpha);
-void BeginMode3D(renderer *Renderer, camera *Camera, float ScreenWidth,
-                 float ScreenHeight);
+renderer Renderer_Create(void);
+void Renderer_Destroy(renderer *Renderer);
+shader_program Renderer_CreateShaderProgram(const char *VertexFile,
+                                            const char *FragmentFile);
+void Renderer_DrawTriangle(renderer *Renderer, glm::vec<3, float> position);
+void Renderer_DrawQuad(renderer *Renderer, glm::vec<3, float> position);
+void Renderer_DrawCube(renderer *Renderer, glm::vec<3, float> Position,
+                       glm::vec<4, float> Color, bool IsSelected);
+void Renderer_DrawLight(renderer *Renderer, glm::vec<3, float> Position,
+                        glm::vec<4, float> Color, float AmbientStrength,
+                        float SpecularStrength);
+void Renderer_ClearBackground(float R, float G, float B, float Alpha);
+void Renderer_BeginMode3D(renderer *Renderer, camera *Camera, float ScreenWidth,
+                          float ScreenHeight);
+
+triangle_mesh Renderer_GetTriangleMesh();
+quad_mesh Renderer_GetQuadMesh();
+cube_mesh Renderer_GetCubeMesh();
 
 #endif
