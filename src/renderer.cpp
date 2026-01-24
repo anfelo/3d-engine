@@ -326,7 +326,7 @@ void Renderer_DrawLight(renderer *Renderer, glm::vec<3, float> Position,
 
 void Renderer_BeginMode3D(renderer *Renderer, camera *Camera, float ScreenWidth,
                           float ScreenHeight) {
-    glm::mat4 View = CameraGetViewMatrix(Camera);
+    glm::mat4 View = Camera_GetViewMatrix(Camera);
     glm::mat4 Projection = glm::perspective(
         glm::radians(Camera->Zoom), ScreenWidth / ScreenHeight, 0.1f, 100.0f);
 

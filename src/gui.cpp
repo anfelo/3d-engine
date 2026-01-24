@@ -2,7 +2,7 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "imgui/imgui.h"
 
-gui GuiCreate(context *Context) {
+gui Gui_Create(context *Context) {
     // Setup Dear ImGui context
     // -----------------------------
     IMGUI_CHECKVERSION();
@@ -15,13 +15,13 @@ gui GuiCreate(context *Context) {
     return Gui;
 }
 
-void GuiNewFrame(void) {
+void Gui_NewFrame(void) {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 }
 
-void GuiDraw(context *Context) {
+void Gui_Draw(context *Context) {
     // Entity Properties
     ImGui::Begin("Entity Properties");
     ImGui::Text("Entity");
@@ -59,7 +59,7 @@ void GuiDraw(context *Context) {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-void GuiDestroy(void) {
+void Gui_Destroy(void) {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();

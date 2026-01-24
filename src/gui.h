@@ -11,9 +11,9 @@ struct gui {
     ImGuiIO &io;
 };
 
-gui GuiCreate(context *Context);
-void GuiNewFrame(void);
-void GuiDraw(context *Context);
-void GuiDestroy(void);
+gui Gui_Create(context *Context);
+void Gui_NewFrame(void);
+void Gui_Draw(context *Context);
+void Gui_Destroy(void);
 
 #endif

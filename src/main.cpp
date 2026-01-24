@@ -60,10 +60,10 @@ int main() {
         return -1;
     }
 
-    gui Gui = GuiCreate(&Context);
+    gui Gui = Gui_Create(&Context);
     renderer Renderer = Renderer_Create();
-    camera Camera = CameraCreate(glm::vec3(0.0f, 0.0f, 3.0f),
-                                 glm::vec3(0.0f, 1.0f, 0.0f), YAW, PITCH);
+    camera Camera = Camera_Create(glm::vec3(0.0f, 0.0f, 3.0f),
+                                  glm::vec3(0.0f, 1.0f, 0.0f), YAW, PITCH);
 
     entity Entity = {
         .Position = glm::vec3(0.0f),
@@ -104,7 +104,7 @@ int main() {
 
         // gui: new frame
         // ------
-        GuiNewFrame();
+        Gui_NewFrame();
 
         // render
         // ------
@@ -125,7 +125,7 @@ int main() {
 
         // gui
         // ------
-        GuiDraw(&Context);
+        Gui_Draw(&Context);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse
         // moved etc.)
@@ -134,7 +134,7 @@ int main() {
         glfwPollEvents();
     }
 
-    GuiDestroy();
+    Gui_Destroy();
     Renderer_Destroy(&Renderer);
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
@@ -152,27 +152,27 @@ void ProcessInput(context *Context) {
     }
 
     if (glfwGetKey(Context->Window, GLFW_KEY_W) == GLFW_PRESS) {
-        CameraProcessKeyboard(Context->Camera, FORWARD, Context->DeltaTime);
+        Camera_ProcessKeyboard(Context->Camera, FORWARD, Context->DeltaTime);
     }
 
     if (glfwGetKey(Context->Window, GLFW_KEY_S) == GLFW_PRESS) {
-        CameraProcessKeyboard(Context->Camera, BACKWARD, Context->DeltaTime);
+        Camera_ProcessKeyboard(Context->Camera, BACKWARD, Context->DeltaTime);
     }
 
     if (glfwGetKey(Context->Window, GLFW_KEY_A) == GLFW_PRESS) {
-        CameraProcessKeyboard(Context->Camera, LEFT, Context->DeltaTime);
+        Camera_ProcessKeyboard(Context->Camera, LEFT, Context->DeltaTime);
     }
 
     if (glfwGetKey(Context->Window, GLFW_KEY_D) == GLFW_PRESS) {
-        CameraProcessKeyboard(Context->Camera, RIGHT, Context->DeltaTime);
+        Camera_ProcessKeyboard(Context->Camera, RIGHT, Context->DeltaTime);
     }
 
     if (glfwGetKey(Context->Window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        CameraProcessKeyboard(Context->Camera, UP, Context->DeltaTime);
+        Camera_ProcessKeyboard(Context->Camera, UP, Context->DeltaTime);
     }
 
     if (glfwGetKey(Context->Window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
-        CameraProcessKeyboard(Context->Camera, DOWN, Context->DeltaTime);
+        Camera_ProcessKeyboard(Context->Camera, DOWN, Context->DeltaTime);
     }
 
     if (glfwGetMouseButton(Context->Window, GLFW_MOUSE_BUTTON_LEFT) ==
@@ -199,7 +199,7 @@ void ProcessInput(context *Context) {
         Context->LastX = MouseX;
         Context->LastY = MouseY;
 
-        CameraProcessMouseMovement(Context->Camera, OffsetX, OffsetY, true);
+        Camera_ProcessMouseMovement(Context->Camera, OffsetX, OffsetY, true);
 
         // Reset the mouse position and the last mouse position
         // to calculate the next frame's delta
@@ -225,5 +225,5 @@ void FramebufferSizeCallback(GLFWwindow *Window, int Width, int Height) {
 }
 
 void MouseScrollCallback(GLFWwindow *Window, double OffsetX, double OffsetY) {
-    CameraProcessMouseScroll(Context.Camera, static_cast<float>(OffsetY));
+    Camera_ProcessMouseScroll(Context.Camera, static_cast<float>(OffsetY));
 }

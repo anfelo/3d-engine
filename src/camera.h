@@ -32,16 +32,16 @@ typedef struct camera {
     float Zoom;
 } camera;
 
-camera CameraCreate(glm::vec3 Position, glm::vec3 Up, float Yaw, float Pitch);
-glm::mat4 CameraGetViewMatrix(camera *Camera);
+camera Camera_Create(glm::vec3 Position, glm::vec3 Up, float Yaw, float Pitch);
+glm::mat4 Camera_GetViewMatrix(camera *Camera);
 // processes input received from any keyboard-like input system. Accepts input
 // parameter in the form of camera defined ENUM (to abstract it from windowing
 // systems)
-void CameraProcessKeyboard(camera *Camera, camera_movement Direction,
-                           float DeltaTime);
+void Camera_ProcessKeyboard(camera *Camera, camera_movement Direction,
+                            float DeltaTime);
 // processes input received from a mouse input system. Expects the offset
 // value in both the x and y direction.
-void CameraProcessMouseMovement(camera *Camera, float OffsetX, float OffsetY,
-                                GLboolean ConstrainPitch);
-void CameraProcessMouseScroll(camera *Camera, float OffsetY);
+void Camera_ProcessMouseMovement(camera *Camera, float OffsetX, float OffsetY,
+                                 GLboolean ConstrainPitch);
+void Camera_ProcessMouseScroll(camera *Camera, float OffsetY);
 #endif
