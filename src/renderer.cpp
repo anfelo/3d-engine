@@ -251,7 +251,8 @@ void Renderer_DrawQuad(const renderer &Renderer, glm::vec<3, float> position) {
 }
 
 void Renderer_DrawCube(const renderer &Renderer, glm::vec<3, float> Position,
-                       glm::vec<4, float> Color, bool IsSelected) {
+                       glm::vec<4, float> Rotation, glm::vec<4, float> Color,
+                       bool IsSelected) {
     // 1st render pass
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glStencilMask(0xFF);
@@ -265,11 +266,9 @@ void Renderer_DrawCube(const renderer &Renderer, glm::vec<3, float> Position,
     glm::mat4 Model = glm::mat4(1.0f);
     Model = glm::translate(Model, Position);
     Model = glm::scale(Model, glm::vec3(1.0f));
-    // TODO: Make the rotation work with the gui params
-    float Angle = 20.0f;
-    Model = glm::rotate(Model, glm::radians(Angle), glm::vec3(1.0f));
-    Model =
-        glm::rotate(Model, glm::radians(Angle), glm::vec3(1.0f, 1.0f, 1.0f));
+
+    glm::vec3 RotationVec = glm::vec3(Rotation[1], Rotation[2], Rotation[3]);
+    Model = glm::rotate(Model, glm::radians(Rotation[0]), RotationVec);
     glUniformMatrix4fv(Renderer.ShaderProgram.Uniforms.ModelUniformLoc, 1,
                        GL_FALSE, glm::value_ptr(Model));
 
@@ -288,11 +287,7 @@ void Renderer_DrawCube(const renderer &Renderer, glm::vec<3, float> Position,
         Model = glm::mat4(1.0f);
         Model = glm::translate(Model, Position);
         Model = glm::scale(Model, glm::vec3(1.02f));
-        // TODO: Make the rotation work with the gui params
-        Angle = 20.0f;
-        Model = glm::rotate(Model, glm::radians(Angle), glm::vec3(1.0f));
-        Model = glm::rotate(Model, glm::radians(Angle),
-                            glm::vec3(1.0f, 1.0f, 1.0f));
+        Model = glm::rotate(Model, glm::radians(Rotation[0]), RotationVec);
         glUniformMatrix4fv(
             Renderer.OutlineShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
             glm::value_ptr(Model));
@@ -330,8 +325,8 @@ void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
     for (entity Entity : Scene.Entities) {
         switch (Entity.Type) {
         case entity_type::Cube:
-            Renderer_DrawCube(Renderer, Entity.Position, Entity.Color,
-                              Entity.IsSelected);
+            Renderer_DrawCube(Renderer, Entity.Position, Entity.Rotation,
+                              Entity.Color, Entity.IsSelected);
             break;
         case entity_type::Triangle:
             Renderer_DrawTriangle(Renderer, Entity.Position);

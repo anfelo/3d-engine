@@ -14,7 +14,7 @@ struct entity {
     entity_type Type;
     glm::vec3 Position;
     glm::vec3 Scale;
-    glm::vec3 Rotation;
+    glm::vec4 Rotation;
     glm::vec4 Color;
     bool IsSelected;
 };
@@ -26,7 +26,7 @@ struct light_entity {
             entity_type Type;
             glm::vec3 Position;
             glm::vec3 Scale;
-            glm::vec3 Rotation;
+            glm::vec4 Rotation;
             glm::vec4 Color;
             bool IsSelected;
         };

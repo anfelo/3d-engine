@@ -66,7 +66,8 @@ void Renderer_DrawTriangle(const renderer &Renderer,
                            glm::vec<3, float> position);
 void Renderer_DrawQuad(const renderer &Renderer, glm::vec<3, float> position);
 void Renderer_DrawCube(const renderer &Renderer, glm::vec<3, float> Position,
-                       glm::vec<4, float> Color, bool IsSelected);
+                       glm::vec<4, float> Rotation, glm::vec<4, float> Color,
+                       bool IsSelected);
 void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
                         glm::vec<4, float> Color, float AmbientStrength,
                         float SpecularStrength);

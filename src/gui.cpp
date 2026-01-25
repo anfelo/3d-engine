@@ -32,6 +32,7 @@ void Gui_Draw(scene &Scene) {
         ImGui::Text("Entity %d", (int)(i + 1));
         ImGui::Checkbox("Selected", &Entity.IsSelected);
         ImGui::DragFloat3("Position", glm::value_ptr(Entity.Position), 0.1f);
+        ImGui::DragFloat4("Rotation", glm::value_ptr(Entity.Rotation), 0.1f);
         ImGui::Separator();
         ImGui::ColorEdit4("Color", glm::value_ptr(Entity.Color));
         ImGui::PopID();

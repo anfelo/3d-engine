@@ -65,37 +65,49 @@ int main() {
                                   glm::vec3(0.0f, 1.0f, 0.0f), YAW, PITCH);
     Context.Camera = Camera;
 
-    entity Cube1 = {
-        .Type = entity_type::Cube,
-        .Position = glm::vec3(0.0f),
-        .Scale = glm::vec3(0.0f),
-        .Rotation = glm::vec3(0.0f),
-        .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
-        .IsSelected = false,
+    scene Scene = Scene_Create();
+
+    glm::vec3 CubePositions[] = {
+        glm::vec3(0.0f, 0.0f, 0.0f),    glm::vec3(2.0f, 5.0f, -15.0f),
+        glm::vec3(-1.5f, -2.2f, -2.5f), glm::vec3(-3.8f, -2.0f, -12.3f),
+        glm::vec3(2.4f, -0.4f, -3.5f),  glm::vec3(-1.7f, 3.0f, -7.5f),
+        glm::vec3(1.3f, -2.0f, -2.5f),  glm::vec3(1.5f, 2.0f, -2.5f),
+        glm::vec3(1.5f, 0.2f, -1.5f),   glm::vec3(-1.3f, 1.0f, -1.5f),
     };
-    entity Cube2 = {
-        .Type = entity_type::Cube,
-        .Position = glm::vec3(1.0f),
-        .Scale = glm::vec3(0.0f),
-        .Rotation = glm::vec3(0.0f),
-        .Color = glm::vec4(1.0f, 0.2f, 1.0f, 1.0f),
-        .IsSelected = false,
-    };
+
+    // glm::vec3 PointLightPositions[] = {
+    //     glm::vec3(0.7f, 0.2f, 2.0f),
+    //     glm::vec3(2.3f, -3.3f, -4.0f),
+    //     glm::vec3(-4.0f, 2.0f, -12.0f),
+    //     glm::vec3(0.0f, 0.0f, -3.0f),
+    // };
+
+    for (size_t i = 0; i < 10; i++) {
+        float Angle = 20 * i;
+        entity Cube = {
+            .Type = entity_type::Cube,
+            .Position = CubePositions[i],
+            .Scale = glm::vec3(0.0f),
+            .Rotation = glm::vec4(Angle, 1.0f, 0.3f, 0.5f),
+            .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
+            .IsSelected = false,
+        };
+
+        Scene_AddEntity(Scene, Cube);
+    }
+
     light_entity LightEntity = {
         .Entity =
             {
                 .Position = glm::vec3(1.2f, 1.0f, 2.0f),
                 .Scale = glm::vec3(1.0f),
-                .Rotation = glm::vec3(0.0f),
+                .Rotation = glm::vec4(0.0f),
                 .Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
             },
         .AmbientStrength = 0.1f,
         .SpecularStrength = 0.5,
     };
 
-    scene Scene = Scene_Create();
-    Scene_AddEntity(Scene, Cube1);
-    Scene_AddEntity(Scene, Cube2);
     Scene_AddLight(Scene, LightEntity);
 
     // render loop
