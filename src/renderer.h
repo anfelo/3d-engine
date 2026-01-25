@@ -2,6 +2,7 @@
 #define RENDERER_H_
 
 #include "camera.h"
+#include "scene.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -58,19 +59,22 @@ struct renderer {
 };
 
 renderer Renderer_Create(void);
-void Renderer_Destroy(renderer *Renderer);
+void Renderer_Destroy(renderer &Renderer);
 shader_program Renderer_CreateShaderProgram(const char *VertexFile,
                                             const char *FragmentFile);
-void Renderer_DrawTriangle(renderer *Renderer, glm::vec<3, float> position);
-void Renderer_DrawQuad(renderer *Renderer, glm::vec<3, float> position);
-void Renderer_DrawCube(renderer *Renderer, glm::vec<3, float> Position,
+void Renderer_DrawTriangle(const renderer &Renderer,
+                           glm::vec<3, float> position);
+void Renderer_DrawQuad(const renderer &Renderer, glm::vec<3, float> position);
+void Renderer_DrawCube(const renderer &Renderer, glm::vec<3, float> Position,
                        glm::vec<4, float> Color, bool IsSelected);
-void Renderer_DrawLight(renderer *Renderer, glm::vec<3, float> Position,
+void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
                         glm::vec<4, float> Color, float AmbientStrength,
                         float SpecularStrength);
+void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
+                        const camera &Camera);
 void Renderer_ClearBackground(float R, float G, float B, float Alpha);
-void Renderer_BeginMode3D(renderer *Renderer, camera *Camera, float ScreenWidth,
-                          float ScreenHeight);
+void Renderer_BeginMode3D(const renderer &Renderer, const camera &Camera,
+                          float ScreenWidth, float ScreenHeight);
 
 triangle_mesh Renderer_GetTriangleMesh();
 quad_mesh Renderer_GetQuadMesh();

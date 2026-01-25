@@ -5,8 +5,10 @@
 
 #include "camera.h"
 #include "context.h"
+#include "entity.h"
 #include "gui.h"
 #include "renderer.h"
+#include "scene.h"
 
 void FramebufferSizeCallback(GLFWwindow *Window, int Width, int Height);
 void MouseScrollCallback(GLFWwindow *Window, double OffsetX, double OffsetY);
@@ -16,7 +18,7 @@ void ProcessInput(context *Context);
 const unsigned int SCREEN_WIDTH = 1200;
 const unsigned int SCREEN_HEIGHT = 800;
 
-static context Context;
+context Context;
 
 int main() {
     // glfw: initialize and configure
@@ -39,9 +41,6 @@ int main() {
         .ScreenWidth = (float)SCREEN_WIDTH,
         .ScreenHeight = (float)SCREEN_HEIGHT,
         .DeltaTime = 0.0f,
-        .LastX = SCREEN_WIDTH / 2.0f,
-        .LastY = SCREEN_HEIGHT / 2.0f,
-        .FirstClick = true,
     };
 
     if (Context.Window == NULL) {
@@ -60,16 +59,26 @@ int main() {
         return -1;
     }
 
-    gui Gui = Gui_Create(&Context);
+    gui Gui = Gui_Create(Context);
     renderer Renderer = Renderer_Create();
     camera Camera = Camera_Create(glm::vec3(0.0f, 0.0f, 3.0f),
                                   glm::vec3(0.0f, 1.0f, 0.0f), YAW, PITCH);
+    Context.Camera = Camera;
 
-    entity Entity = {
+    entity Cube1 = {
+        .Type = entity_type::Cube,
         .Position = glm::vec3(0.0f),
         .Scale = glm::vec3(0.0f),
         .Rotation = glm::vec3(0.0f),
         .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
+        .IsSelected = false,
+    };
+    entity Cube2 = {
+        .Type = entity_type::Cube,
+        .Position = glm::vec3(1.0f),
+        .Scale = glm::vec3(0.0f),
+        .Rotation = glm::vec3(0.0f),
+        .Color = glm::vec4(1.0f, 0.2f, 1.0f, 1.0f),
         .IsSelected = false,
     };
     light_entity LightEntity = {
@@ -83,9 +92,11 @@ int main() {
         .AmbientStrength = 0.1f,
         .SpecularStrength = 0.5,
     };
-    Context.Entity = &Entity;
-    Context.LightEntity = &LightEntity;
-    Context.Camera = &Camera;
+
+    scene Scene = Scene_Create();
+    Scene_AddEntity(Scene, Cube1);
+    Scene_AddEntity(Scene, Cube2);
+    Scene_AddLight(Scene, LightEntity);
 
     // render loop
     // -----------
@@ -110,22 +121,17 @@ int main() {
         // ------
         Renderer_ClearBackground(0.1f, 0.1f, 0.1f, 1.0f);
 
-        Renderer_BeginMode3D(&Renderer, Context.Camera, Context.ScreenWidth,
+        Renderer_BeginMode3D(Renderer, Context.Camera, Context.ScreenWidth,
                              Context.ScreenHeight);
 
-        Renderer_DrawLight(&Renderer, LightEntity.Position, LightEntity.Color,
-                           LightEntity.AmbientStrength,
-                           LightEntity.SpecularStrength);
-
-        Renderer_DrawCube(&Renderer, Entity.Position, Entity.Color,
-                          Entity.IsSelected);
+        Renderer_DrawScene(Renderer, Scene, Context.Camera);
 
         // TODO: End the camera 3d rendering
         // Renderer_EndMode3D();
 
         // gui
         // ------
-        Gui_Draw(&Context);
+        Gui_Draw(Scene);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse
         // moved etc.)
@@ -135,7 +141,7 @@ int main() {
     }
 
     Gui_Destroy();
-    Renderer_Destroy(&Renderer);
+    Renderer_Destroy(Renderer);
 
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
@@ -152,27 +158,27 @@ void ProcessInput(context *Context) {
     }
 
     if (glfwGetKey(Context->Window, GLFW_KEY_W) == GLFW_PRESS) {
-        Camera_ProcessKeyboard(Context->Camera, FORWARD, Context->DeltaTime);
+        Camera_ProcessKeyboard(&Context->Camera, FORWARD, Context->DeltaTime);
     }
 
     if (glfwGetKey(Context->Window, GLFW_KEY_S) == GLFW_PRESS) {
-        Camera_ProcessKeyboard(Context->Camera, BACKWARD, Context->DeltaTime);
+        Camera_ProcessKeyboard(&Context->Camera, BACKWARD, Context->DeltaTime);
     }
 
     if (glfwGetKey(Context->Window, GLFW_KEY_A) == GLFW_PRESS) {
-        Camera_ProcessKeyboard(Context->Camera, LEFT, Context->DeltaTime);
+        Camera_ProcessKeyboard(&Context->Camera, LEFT, Context->DeltaTime);
     }
 
     if (glfwGetKey(Context->Window, GLFW_KEY_D) == GLFW_PRESS) {
-        Camera_ProcessKeyboard(Context->Camera, RIGHT, Context->DeltaTime);
+        Camera_ProcessKeyboard(&Context->Camera, RIGHT, Context->DeltaTime);
     }
 
     if (glfwGetKey(Context->Window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        Camera_ProcessKeyboard(Context->Camera, UP, Context->DeltaTime);
+        Camera_ProcessKeyboard(&Context->Camera, UP, Context->DeltaTime);
     }
 
     if (glfwGetKey(Context->Window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
-        Camera_ProcessKeyboard(Context->Camera, DOWN, Context->DeltaTime);
+        Camera_ProcessKeyboard(&Context->Camera, DOWN, Context->DeltaTime);
     }
 
     if (glfwGetMouseButton(Context->Window, GLFW_MOUSE_BUTTON_LEFT) ==
@@ -199,7 +205,7 @@ void ProcessInput(context *Context) {
         Context->LastX = MouseX;
         Context->LastY = MouseY;
 
-        Camera_ProcessMouseMovement(Context->Camera, OffsetX, OffsetY, true);
+        Camera_ProcessMouseMovement(&Context->Camera, OffsetX, OffsetY, true);
 
         // Reset the mouse position and the last mouse position
         // to calculate the next frame's delta
@@ -225,5 +231,5 @@ void FramebufferSizeCallback(GLFWwindow *Window, int Width, int Height) {
 }
 
 void MouseScrollCallback(GLFWwindow *Window, double OffsetX, double OffsetY) {
-    Camera_ProcessMouseScroll(Context.Camera, static_cast<float>(OffsetY));
+    Camera_ProcessMouseScroll(&Context.Camera, static_cast<float>(OffsetY));
 }

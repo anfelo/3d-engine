@@ -18,9 +18,9 @@ camera Camera_Create(glm::vec3 Position, glm::vec3 Up, float Yaw, float Pitch) {
     return Camera;
 }
 
-glm::mat4 Camera_GetViewMatrix(camera *Camera) {
-    return glm::lookAt(Camera->Position, Camera->Position + Camera->Front,
-                       Camera->Up);
+glm::mat4 Camera_GetViewMatrix(const camera &Camera) {
+    return glm::lookAt(Camera.Position, Camera.Position + Camera.Front,
+                       Camera.Up);
 }
 
 void Camera_ProcessKeyboard(camera *Camera, camera_movement Direction,

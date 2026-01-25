@@ -4,7 +4,14 @@
 #include "glm/ext/vector_float3.hpp"
 #include "glm/ext/vector_float4.hpp"
 
+enum class entity_type {
+    Triangle,
+    Quad,
+    Cube,
+};
+
 struct entity {
+    entity_type Type;
     glm::vec3 Position;
     glm::vec3 Scale;
     glm::vec3 Rotation;
@@ -16,6 +23,7 @@ struct light_entity {
     union {
         struct entity Entity;
         struct {
+            entity_type Type;
             glm::vec3 Position;
             glm::vec3 Scale;
             glm::vec3 Rotation;

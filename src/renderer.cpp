@@ -106,7 +106,7 @@ renderer Renderer_Create() {
     return Renderer;
 }
 
-void Renderer_Destroy(renderer *Renderer) {
+void Renderer_Destroy(renderer &Renderer) {
     glDeleteVertexArrays(1, &TriangleMesh.VAO);
     glDeleteBuffers(1, &TriangleMesh.VBO);
 
@@ -114,7 +114,7 @@ void Renderer_Destroy(renderer *Renderer) {
     glDeleteBuffers(1, &QuadMesh.VBO);
     glDeleteBuffers(1, &QuadMesh.EBO);
 
-    glDeleteProgram(Renderer->ShaderProgram.ID);
+    glDeleteProgram(Renderer.ShaderProgram.ID);
 }
 
 shader_program Renderer_CreateShaderProgram(const char *VertexFile,
@@ -201,7 +201,8 @@ void Renderer_ClearBackground(float R, float G, float B, float Alpha) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
-void Renderer_DrawTriangle(renderer *Renderer, glm::vec<3, float> position) {
+void Renderer_DrawTriangle(const renderer &Renderer,
+                           glm::vec<3, float> position) {
     glm::mat4 view = glm::mat4(1.0f);
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
     glm::mat4 projection;
@@ -209,23 +210,23 @@ void Renderer_DrawTriangle(renderer *Renderer, glm::vec<3, float> position) {
         glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
 
     // Sets the uniform value
-    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ViewUniformLoc, 1,
+    glUniformMatrix4fv(Renderer.ShaderProgram.Uniforms.ViewUniformLoc, 1,
                        GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ProjectionUniformLoc, 1,
+    glUniformMatrix4fv(Renderer.ShaderProgram.Uniforms.ProjectionUniformLoc, 1,
                        GL_FALSE, glm::value_ptr(projection));
 
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, position);
-    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ModelUniformLoc, 1,
+    glUniformMatrix4fv(Renderer.ShaderProgram.Uniforms.ModelUniformLoc, 1,
                        GL_FALSE, glm::value_ptr(model));
 
-    glUseProgram(Renderer->ShaderProgram.ID);
+    glUseProgram(Renderer.ShaderProgram.ID);
     glBindVertexArray(TriangleMesh.VAO);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
-void Renderer_DrawQuad(renderer *Renderer, glm::vec<3, float> position) {
+void Renderer_DrawQuad(const renderer &Renderer, glm::vec<3, float> position) {
     glm::mat4 view = glm::mat4(1.0f);
     view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
     glm::mat4 projection;
@@ -233,32 +234,32 @@ void Renderer_DrawQuad(renderer *Renderer, glm::vec<3, float> position) {
         glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
 
     // Sets the uniform value
-    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ViewUniformLoc, 1,
+    glUniformMatrix4fv(Renderer.ShaderProgram.Uniforms.ViewUniformLoc, 1,
                        GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ProjectionUniformLoc, 1,
+    glUniformMatrix4fv(Renderer.ShaderProgram.Uniforms.ProjectionUniformLoc, 1,
                        GL_FALSE, glm::value_ptr(projection));
 
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, position);
-    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ModelUniformLoc, 1,
+    glUniformMatrix4fv(Renderer.ShaderProgram.Uniforms.ModelUniformLoc, 1,
                        GL_FALSE, glm::value_ptr(model));
 
-    glUseProgram(Renderer->ShaderProgram.ID);
+    glUseProgram(Renderer.ShaderProgram.ID);
     glBindVertexArray(QuadMesh.VAO);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
-void Renderer_DrawCube(renderer *Renderer, glm::vec<3, float> Position,
+void Renderer_DrawCube(const renderer &Renderer, glm::vec<3, float> Position,
                        glm::vec<4, float> Color, bool IsSelected) {
     // 1st render pass
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glStencilMask(0xFF);
 
-    glUseProgram(Renderer->ShaderProgram.ID);
+    glUseProgram(Renderer.ShaderProgram.ID);
 
     glm::vec3 CubeColor = glm::vec3(Color[0], Color[1], Color[2]);
-    glUniform3fv(Renderer->ShaderProgram.Uniforms.EntityColorUniformLoc, 1,
+    glUniform3fv(Renderer.ShaderProgram.Uniforms.EntityColorUniformLoc, 1,
                  glm::value_ptr(CubeColor));
 
     glm::mat4 Model = glm::mat4(1.0f);
@@ -269,7 +270,7 @@ void Renderer_DrawCube(renderer *Renderer, glm::vec<3, float> Position,
     Model = glm::rotate(Model, glm::radians(Angle), glm::vec3(1.0f));
     Model =
         glm::rotate(Model, glm::radians(Angle), glm::vec3(1.0f, 1.0f, 1.0f));
-    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ModelUniformLoc, 1,
+    glUniformMatrix4fv(Renderer.ShaderProgram.Uniforms.ModelUniformLoc, 1,
                        GL_FALSE, glm::value_ptr(Model));
 
     glBindVertexArray(CubeMesh.VAO);
@@ -282,7 +283,7 @@ void Renderer_DrawCube(renderer *Renderer, glm::vec<3, float> Position,
         glStencilMask(0x00);
         glDisable(GL_DEPTH_TEST);
 
-        glUseProgram(Renderer->OutlineShaderProgram.ID);
+        glUseProgram(Renderer.OutlineShaderProgram.ID);
 
         Model = glm::mat4(1.0f);
         Model = glm::translate(Model, Position);
@@ -293,8 +294,8 @@ void Renderer_DrawCube(renderer *Renderer, glm::vec<3, float> Position,
         Model = glm::rotate(Model, glm::radians(Angle),
                             glm::vec3(1.0f, 1.0f, 1.0f));
         glUniformMatrix4fv(
-            Renderer->OutlineShaderProgram.Uniforms.ModelUniformLoc, 1,
-            GL_FALSE, glm::value_ptr(Model));
+            Renderer.OutlineShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
+            glm::value_ptr(Model));
 
         glBindVertexArray(CubeMesh.VAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -305,52 +306,75 @@ void Renderer_DrawCube(renderer *Renderer, glm::vec<3, float> Position,
     }
 }
 
-void Renderer_DrawLight(renderer *Renderer, glm::vec<3, float> Position,
+void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
                         glm::vec<4, float> Color, float AmbientStrength,
                         float SpecularStrength) {
-    glUseProgram(Renderer->ShaderProgram.ID);
+    glUseProgram(Renderer.ShaderProgram.ID);
 
     glm::vec3 LightColor = glm::vec3(Color[0], Color[1], Color[2]);
-    glUniform3fv(Renderer->ShaderProgram.Uniforms.LightColorUniformLoc, 1,
+    glUniform3fv(Renderer.ShaderProgram.Uniforms.LightColorUniformLoc, 1,
                  glm::value_ptr(LightColor));
 
     glm::vec3 LightPos = glm::vec3(Position[0], Position[1], Position[2]);
-    glUniform3fv(Renderer->ShaderProgram.Uniforms.LightPositionUniformLoc, 1,
+    glUniform3fv(Renderer.ShaderProgram.Uniforms.LightPositionUniformLoc, 1,
                  glm::value_ptr(LightPos));
 
-    glUniform1fv(Renderer->ShaderProgram.Uniforms.AmbientStrengthUniformLoc, 1,
+    glUniform1fv(Renderer.ShaderProgram.Uniforms.AmbientStrengthUniformLoc, 1,
                  &AmbientStrength);
-    glUniform1fv(Renderer->ShaderProgram.Uniforms.SpecularStrengthUniformLoc, 1,
+    glUniform1fv(Renderer.ShaderProgram.Uniforms.SpecularStrengthUniformLoc, 1,
                  &SpecularStrength);
 }
 
-void Renderer_BeginMode3D(renderer *Renderer, camera *Camera, float ScreenWidth,
-                          float ScreenHeight) {
+void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
+                        const camera &Camera) {
+    for (entity Entity : Scene.Entities) {
+        switch (Entity.Type) {
+        case entity_type::Cube:
+            Renderer_DrawCube(Renderer, Entity.Position, Entity.Color,
+                              Entity.IsSelected);
+            break;
+        case entity_type::Triangle:
+            Renderer_DrawTriangle(Renderer, Entity.Position);
+            break;
+        case entity_type::Quad:
+            Renderer_DrawQuad(Renderer, Entity.Position);
+            break;
+        }
+    }
+
+    for (light_entity Light : Scene.Lights) {
+        Renderer_DrawLight(Renderer, Light.Position, Light.Color,
+                           Light.AmbientStrength, Light.SpecularStrength);
+    }
+}
+
+void Renderer_BeginMode3D(const renderer &Renderer, const camera &Camera,
+                          float ScreenWidth, float ScreenHeight) {
     glm::mat4 View = Camera_GetViewMatrix(Camera);
     glm::mat4 Projection = glm::perspective(
-        glm::radians(Camera->Zoom), ScreenWidth / ScreenHeight, 0.1f, 100.0f);
+        glm::radians(Camera.Zoom), ScreenWidth / ScreenHeight, 0.1f, 100.0f);
 
     // Set view & projection for normal shader
-    glUseProgram(Renderer->ShaderProgram.ID);
-    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ViewUniformLoc, 1,
+    glUseProgram(Renderer.ShaderProgram.ID);
+    glUniformMatrix4fv(Renderer.ShaderProgram.Uniforms.ViewUniformLoc, 1,
                        GL_FALSE, glm::value_ptr(View));
-    glUniformMatrix4fv(Renderer->ShaderProgram.Uniforms.ProjectionUniformLoc, 1,
+    glUniformMatrix4fv(Renderer.ShaderProgram.Uniforms.ProjectionUniformLoc, 1,
                        GL_FALSE, glm::value_ptr(Projection));
 
-    glUniform3fv(Renderer->ShaderProgram.Uniforms.ViewPositionUniformLoc, 1,
-                 glm::value_ptr(Camera->Position));
+    glUniform3fv(Renderer.ShaderProgram.Uniforms.ViewPositionUniformLoc, 1,
+                 glm::value_ptr(Camera.Position));
 
     // Set view & projection for outline shader
-    glUseProgram(Renderer->OutlineShaderProgram.ID);
+    glUseProgram(Renderer.OutlineShaderProgram.ID);
     // Sets the uniform value
-    glUniformMatrix4fv(Renderer->OutlineShaderProgram.Uniforms.ViewUniformLoc,
-                       1, GL_FALSE, glm::value_ptr(View));
+    glUniformMatrix4fv(Renderer.OutlineShaderProgram.Uniforms.ViewUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(View));
     glUniformMatrix4fv(
-        Renderer->OutlineShaderProgram.Uniforms.ProjectionUniformLoc, 1,
+        Renderer.OutlineShaderProgram.Uniforms.ProjectionUniformLoc, 1,
         GL_FALSE, glm::value_ptr(Projection));
 
-    glUniform3fv(Renderer->OutlineShaderProgram.Uniforms.ViewPositionUniformLoc,
-                 1, glm::value_ptr(Camera->Position));
+    glUniform3fv(Renderer.OutlineShaderProgram.Uniforms.ViewPositionUniformLoc,
+                 1, glm::value_ptr(Camera.Position));
 }
 
 triangle_mesh Renderer_GetTriangleMesh() {

@@ -10,9 +10,7 @@ struct context {
     float ScreenWidth;
     float ScreenHeight;
 
-    camera *Camera;
-    entity *Entity;
-    light_entity *LightEntity;
+    camera Camera;
 
     float DeltaTime;
     float LastFrame;

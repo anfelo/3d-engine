@@ -33,7 +33,7 @@ typedef struct camera {
 } camera;
 
 camera Camera_Create(glm::vec3 Position, glm::vec3 Up, float Yaw, float Pitch);
-glm::mat4 Camera_GetViewMatrix(camera *Camera);
+glm::mat4 Camera_GetViewMatrix(const camera &Camera);
 // processes input received from any keyboard-like input system. Accepts input
 // parameter in the form of camera defined ENUM (to abstract it from windowing
 // systems)
