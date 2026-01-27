@@ -34,6 +34,42 @@ struct cube_mesh {
     GLuint EBO;
 };
 
+struct directional_light {
+    GLuint DirUniformLoc;
+    GLuint AmbientUniformLoc;
+    GLuint DiffuseUniformLoc;
+    GLuint SpecularUniformLoc;
+};
+
+struct point_light {
+    GLuint PositionUniformLoc;
+    GLuint AmbientUniformLoc;
+    GLuint DiffuseUniformLoc;
+    GLuint SpecularUniformLoc;
+    GLuint ConstantUniformLoc;
+    GLuint LinearUniformLoc;
+    GLuint QuadraticUniformLoc;
+};
+
+struct spot_light {
+    GLuint PositionUniformLoc;
+    GLuint DirectionUniformLoc;
+    GLuint AmbientUniformLoc;
+    GLuint DiffuseUniformLoc;
+    GLuint SpecularUniformLoc;
+    GLuint ConstantUniformLoc;
+    GLuint LinearUniformLoc;
+    GLuint QuadraticUniformLoc;
+    GLuint CutOffUniformLoc;
+    GLuint OuterCutOffUniformLoc;
+};
+
+struct material {
+    GLuint DiffuseUniformLoc;
+    GLuint SpecularUniformLoc;
+    GLuint ShininessUniformLoc;
+};
+
 struct uniform_locators {
     GLuint ModelUniformLoc;
     GLuint ViewUniformLoc;
@@ -45,6 +81,12 @@ struct uniform_locators {
     GLuint ViewPositionUniformLoc;
     GLuint AmbientStrengthUniformLoc;
     GLuint SpecularStrengthUniformLoc;
+
+    material Material;
+
+    directional_light DirectionalLight;
+    spot_light SpotLight;
+    point_light PointLights[4];
 };
 
 struct shader_program {

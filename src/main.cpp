@@ -74,15 +74,10 @@ int main() {
         glm::vec3(1.3f, -2.0f, -2.5f),  glm::vec3(1.5f, 2.0f, -2.5f),
         glm::vec3(1.5f, 0.2f, -1.5f),   glm::vec3(-1.3f, 1.0f, -1.5f),
     };
+    size_t CubePositionsLength =
+        sizeof(CubePositions) / sizeof(CubePositions[0]);
 
-    // glm::vec3 PointLightPositions[] = {
-    //     glm::vec3(0.7f, 0.2f, 2.0f),
-    //     glm::vec3(2.3f, -3.3f, -4.0f),
-    //     glm::vec3(-4.0f, 2.0f, -12.0f),
-    //     glm::vec3(0.0f, 0.0f, -3.0f),
-    // };
-
-    for (size_t i = 0; i < 10; i++) {
+    for (size_t i = 0; i < CubePositionsLength; i++) {
         float Angle = 20 * i;
         entity Cube = {
             .Type = entity_type::Cube,
@@ -96,19 +91,58 @@ int main() {
         Scene_AddEntity(Scene, Cube);
     }
 
-    light_entity LightEntity = {
+    glm::vec3 PointLightPositions[] = {
+        glm::vec3(0.7f, 0.2f, 2.0f),
+        glm::vec3(2.3f, -3.3f, -4.0f),
+        glm::vec3(-4.0f, 2.0f, -12.0f),
+        glm::vec3(0.0f, 0.0f, -3.0f),
+    };
+    size_t PointLightPositionsLength =
+        sizeof(PointLightPositions) / sizeof(PointLightPositions[0]);
+
+    for (size_t i = 0; i < PointLightPositionsLength; i++) {
+        light_entity PointLight = {
+            .Entity =
+                {
+                    .Position = PointLightPositions[i],
+                    .Scale = glm::vec3(1.0f),
+                    .Rotation = glm::vec4(0.0f),
+                    .Color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f),
+                },
+            .LightType = light_type::Point,
+            .AmbientStrength = 0.1f,
+            .SpecularStrength = 0.5,
+        };
+        Scene_AddLight(Scene, PointLight);
+    }
+
+    light_entity SpotLight = {
         .Entity =
             {
-                .Position = glm::vec3(1.2f, 1.0f, 2.0f),
+                .Position = Camera.Position,
                 .Scale = glm::vec3(1.0f),
                 .Rotation = glm::vec4(0.0f),
-                .Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                .Color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f),
             },
+        .LightType = light_type::Spot,
         .AmbientStrength = 0.1f,
         .SpecularStrength = 0.5,
     };
+    Scene_AddLight(Scene, SpotLight);
 
-    Scene_AddLight(Scene, LightEntity);
+    light_entity DirectionalLight = {
+        .Entity =
+            {
+                .Position = glm::vec3(0.0f),
+                .Scale = glm::vec3(1.0f),
+                .Rotation = glm::vec4(0.0f),
+                .Color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f),
+            },
+        .LightType = light_type::Directional,
+        .AmbientStrength = 0.1f,
+        .SpecularStrength = 0.5,
+    };
+    Scene_AddLight(Scene, DirectionalLight);
 
     // render loop
     // -----------

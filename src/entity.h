@@ -19,6 +19,12 @@ struct entity {
     bool IsSelected;
 };
 
+enum class light_type {
+    Directional,
+    Point,
+    Spot,
+};
+
 struct light_entity {
     union {
         struct entity Entity;
@@ -32,6 +38,7 @@ struct light_entity {
         };
     };
 
+    light_type LightType;
     float AmbientStrength;
     float SpecularStrength;
 };
