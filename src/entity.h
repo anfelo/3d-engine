@@ -3,6 +3,7 @@
 
 #include "glm/ext/vector_float3.hpp"
 #include "glm/ext/vector_float4.hpp"
+#include "texture.h"
 
 enum class entity_type {
     Triangle,
@@ -17,6 +18,7 @@ struct entity {
     glm::vec4 Rotation;
     glm::vec4 Color;
     bool IsSelected;
+    material Material;
 };
 
 enum class light_type {

@@ -3,6 +3,7 @@
 
 #include "camera.h"
 #include "scene.h"
+#include "texture.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -27,7 +28,7 @@ struct quad_mesh {
 };
 
 struct cube_mesh {
-    float Vertices[216];
+    float Vertices[288];
 
     GLuint VAO;
     GLuint VBO;
@@ -64,7 +65,7 @@ struct spot_light {
     GLuint OuterCutOffUniformLoc;
 };
 
-struct material {
+struct material_uniforms {
     GLuint DiffuseUniformLoc;
     GLuint SpecularUniformLoc;
     GLuint ShininessUniformLoc;
@@ -82,7 +83,7 @@ struct uniform_locators {
     GLuint AmbientStrengthUniformLoc;
     GLuint SpecularStrengthUniformLoc;
 
-    material Material;
+    material_uniforms Material;
 
     directional_light DirectionalLight;
     spot_light SpotLight;
@@ -109,7 +110,7 @@ void Renderer_DrawTriangle(const renderer &Renderer,
 void Renderer_DrawQuad(const renderer &Renderer, glm::vec<3, float> position);
 void Renderer_DrawCube(const renderer &Renderer, glm::vec<3, float> Position,
                        glm::vec<4, float> Rotation, glm::vec<4, float> Color,
-                       bool IsSelected);
+                       material Material, bool IsSelected);
 void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
                         glm::vec<4, float> Color, float AmbientStrength,
                         float SpecularStrength);

@@ -67,6 +67,18 @@ int main() {
 
     scene Scene = Scene_Create();
 
+    texture DiffuseMap;
+    Texture_Create(&DiffuseMap, "./resources/textures/container.png",
+                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+
+    texture SpecularMap;
+    Texture_Create(&SpecularMap, "./resources/textures/container_specular.png",
+                   GL_TEXTURE_2D, GL_TEXTURE1, GL_RGBA, GL_UNSIGNED_BYTE);
+
+    material CubeMaterial = {};
+    CubeMaterial.DiffuseMap = DiffuseMap;
+    CubeMaterial.SpecularMap = SpecularMap;
+
     glm::vec3 CubePositions[] = {
         glm::vec3(0.0f, 0.0f, 0.0f),    glm::vec3(2.0f, 5.0f, -15.0f),
         glm::vec3(-1.5f, -2.2f, -2.5f), glm::vec3(-3.8f, -2.0f, -12.3f),
@@ -86,6 +98,7 @@ int main() {
             .Rotation = glm::vec4(Angle, 1.0f, 0.3f, 0.5f),
             .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
             .IsSelected = false,
+            .Material = CubeMaterial,
         };
 
         Scene_AddEntity(Scene, Cube);
