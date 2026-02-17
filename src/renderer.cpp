@@ -271,6 +271,12 @@ shader_program Renderer_CreateShaderProgram(const char *VertexFile,
         glGetUniformLocation(ShaderProgram.ID, "u_material.diffuse");
     ShaderProgram.Uniforms.Material.SpecularUniformLoc =
         glGetUniformLocation(ShaderProgram.ID, "u_material.specular");
+    ShaderProgram.Uniforms.Material.NormalUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_material.normal");
+    ShaderProgram.Uniforms.Material.HasNormalUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_material.has_normal");
+    ShaderProgram.Uniforms.Material.HasSpecularUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_material.has_specular");
 
     return ShaderProgram;
 }
@@ -340,9 +346,15 @@ void Renderer_DrawCube(const renderer &Renderer, glm::vec<3, float> Position,
 
     glUniform1i(Renderer.ShaderProgram.Uniforms.Material.DiffuseUniformLoc, 0);
     glUniform1i(Renderer.ShaderProgram.Uniforms.Material.SpecularUniformLoc, 1);
+    glUniform1i(Renderer.ShaderProgram.Uniforms.Material.NormalUniformLoc, 2);
+    glUniform1i(Renderer.ShaderProgram.Uniforms.Material.HasNormalUniformLoc,
+                Material.HasNormalMap ? 1 : 0);
+    glUniform1i(Renderer.ShaderProgram.Uniforms.Material.HasSpecularUniformLoc,
+                Material.HasSpecularMap ? 1 : 0);
 
     Texture_Bind(&Material.DiffuseMap, GL_TEXTURE0);
     Texture_Bind(&Material.SpecularMap, GL_TEXTURE1);
+    Texture_Bind(&Material.NormalMap, GL_TEXTURE2);
 
     glm::vec3 CubeColor = glm::vec3(Color[0], Color[1], Color[2]);
     glUniform3fv(Renderer.ShaderProgram.Uniforms.EntityColorUniformLoc, 1,

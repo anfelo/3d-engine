@@ -68,7 +68,10 @@ struct spot_light {
 struct material_uniforms {
     GLuint DiffuseUniformLoc;
     GLuint SpecularUniformLoc;
+    GLuint NormalUniformLoc;
     GLuint ShininessUniformLoc;
+    GLuint HasNormalUniformLoc;
+    GLuint HasSpecularUniformLoc;
 };
 
 struct uniform_locators {

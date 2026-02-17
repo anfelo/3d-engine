@@ -67,43 +67,60 @@ int main() {
 
     scene Scene = Scene_Create();
 
-    texture DiffuseMap;
-    Texture_Create(&DiffuseMap, "./resources/textures/container.png",
+    texture ContainerDiffuseMap;
+    Texture_Create(&ContainerDiffuseMap, "./resources/textures/container.png",
                    GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+    texture ContainerSpecularMap;
+    Texture_Create(&ContainerSpecularMap,
+                   "./resources/textures/container_specular.png", GL_TEXTURE_2D,
+                   GL_TEXTURE1, GL_RGBA, GL_UNSIGNED_BYTE);
 
-    texture SpecularMap;
-    Texture_Create(&SpecularMap, "./resources/textures/container_specular.png",
-                   GL_TEXTURE_2D, GL_TEXTURE1, GL_RGBA, GL_UNSIGNED_BYTE);
+    material ContainerMaterial = {};
+    ContainerMaterial.DiffuseMap = ContainerDiffuseMap;
+    ContainerMaterial.SpecularMap = ContainerSpecularMap;
+    ContainerMaterial.HasNormalMap = false;
+    ContainerMaterial.HasSpecularMap = true;
 
-    material CubeMaterial = {};
-    CubeMaterial.DiffuseMap = DiffuseMap;
-    CubeMaterial.SpecularMap = SpecularMap;
-
-    glm::vec3 CubePositions[] = {
-        glm::vec3(0.0f, 0.0f, 0.0f),    glm::vec3(2.0f, 5.0f, -15.0f),
-        glm::vec3(-1.5f, -2.2f, -2.5f), glm::vec3(-3.8f, -2.0f, -12.3f),
-        glm::vec3(2.4f, -0.4f, -3.5f),  glm::vec3(-1.7f, 3.0f, -7.5f),
-        glm::vec3(1.3f, -2.0f, -2.5f),  glm::vec3(1.5f, 2.0f, -2.5f),
-        glm::vec3(1.5f, 0.2f, -1.5f),   glm::vec3(-1.3f, 1.0f, -1.5f),
+    entity Container = {
+        .Type = entity_type::Cube,
+        .Position = glm::vec3(0.0f, 0.0f, 0.0f),
+        .Scale = glm::vec3(0.0f),
+        .Rotation = glm::vec4(0.0f, 1.0f, 0.3f, 0.5f),
+        .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
+        .IsSelected = false,
+        .Material = ContainerMaterial,
     };
-    size_t CubePositionsLength =
-        sizeof(CubePositions) / sizeof(CubePositions[0]);
 
-    for (size_t i = 0; i < CubePositionsLength; i++) {
-        float Angle = 20 * i;
-        entity Cube = {
-            .Type = entity_type::Cube,
-            .Position = CubePositions[i],
-            .Scale = glm::vec3(0.0f),
-            .Rotation = glm::vec4(Angle, 1.0f, 0.3f, 0.5f),
-            .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
-            .IsSelected = false,
-            .Material = CubeMaterial,
-        };
+    Scene_AddEntity(Scene, Container);
 
-        Scene_AddEntity(Scene, Cube);
-    }
+    texture RockDiffuseMap;
+    Texture_Create(&RockDiffuseMap,
+                   "./resources/textures/dry_riverbed_rock_diff.png",
+                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+    texture RockNormalMap;
+    Texture_Create(&RockNormalMap,
+                   "./resources/textures/dry_riverbed_rock_normal.png",
+                   GL_TEXTURE_2D, GL_TEXTURE2, GL_RGBA, GL_UNSIGNED_BYTE);
 
+    material RockMaterial = {};
+    RockMaterial.DiffuseMap = RockDiffuseMap;
+    RockMaterial.NormalMap = RockNormalMap;
+    RockMaterial.HasNormalMap = true;
+    RockMaterial.HasSpecularMap = false;
+
+    entity Rock = {
+        .Type = entity_type::Cube,
+        .Position = glm::vec3(2.0f, 0.0f, 0.0f),
+        .Scale = glm::vec3(0.0f),
+        .Rotation = glm::vec4(0.0f, 1.0f, 0.3f, 0.5f),
+        .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
+        .IsSelected = false,
+        .Material = RockMaterial,
+    };
+
+    Scene_AddEntity(Scene, Rock);
+
+    // Lights
     glm::vec3 PointLightPositions[] = {
         glm::vec3(0.7f, 0.2f, 2.0f),
         glm::vec3(2.3f, -3.3f, -4.0f),

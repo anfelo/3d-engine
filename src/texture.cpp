@@ -19,16 +19,35 @@ void Texture_Create(texture *Tex, const char *File, GLenum TexType, GLenum Slot,
     glTexParameteri(Tex->Type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     // load and generate the texture
-    int width, height, nrChannels;
-    unsigned char *data = stbi_load(File, &width, &height, &nrChannels, 0);
-    if (data) {
-        glTexImage2D(Tex->Type, 0, Format, width, height, 0, Format, PixelType,
-                     data);
+    int Width, Height, NrChannels;
+    unsigned char *Data = stbi_load(File, &Width, &Height, &NrChannels, 0);
+    if (Data) {
+        GLenum InternalFormat;
+        switch (NrChannels) {
+        case 1:
+            Format = GL_RED;
+            InternalFormat = GL_R8;
+            break;
+        case 3:
+            Format = GL_RGB;
+            InternalFormat = GL_RGB8;
+            break;
+        case 4:
+            Format = GL_RGBA;
+            InternalFormat = GL_RGBA8;
+            break;
+        default:
+            Format = GL_RGB;
+            InternalFormat = GL_RGB8;
+            break;
+        }
+        glTexImage2D(Tex->Type, 0, InternalFormat, Width, Height, 0, Format,
+                     PixelType, Data);
         glGenerateMipmap(Tex->Type);
     } else {
         std::cout << "Failed to load texture" << std::endl;
     }
-    stbi_image_free(data);
+    stbi_image_free(Data);
 
     // Unbinds the OpenGL Texture object so that it can't accidentally be
     // modified

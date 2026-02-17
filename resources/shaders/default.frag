@@ -8,7 +8,10 @@ in vec2 TexCoords;
 struct Material {
     sampler2D diffuse;
     sampler2D specular;
+    sampler2D normal;
     float shininess;
+    bool has_specular;
+    bool has_normal;
 };
 
 struct DirLight {
@@ -73,7 +76,10 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 frag_pos, vec3 view_dir)
     // combine results
     vec3 ambient  = light.ambient  * vec3(texture(u_material.diffuse, TexCoords));
     vec3 diffuse  = light.diffuse  * diff * vec3(texture(u_material.diffuse, TexCoords));
-    vec3 specular = light.specular * spec * vec3(texture(u_material.specular, TexCoords));
+    vec3 specular = vec3(0.0);
+    if (u_material.has_specular) {
+        specular = light.specular * spec * vec3(texture(u_material.specular, TexCoords));
+    }
 
     ambient  *= attenuation;
     diffuse  *= attenuation;
@@ -95,7 +101,10 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 view_dir) {
     // combine results
     vec3 ambient  = light.ambient  * vec3(texture(u_material.diffuse, TexCoords));
     vec3 diffuse  = light.diffuse  * diff * vec3(texture(u_material.diffuse, TexCoords));
-    vec3 specular = light.specular * spec * vec3(texture(u_material.specular, TexCoords));
+    vec3 specular = vec3(0.0);
+    if (u_material.has_specular) {
+        specular = light.specular * spec * vec3(texture(u_material.specular, TexCoords));
+    }
 
     return (ambient + diffuse + specular);
 }
@@ -122,7 +131,11 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 frag_pos, vec3 view_dir) {
     // combine results
     vec3 ambient = light.ambient * vec3(texture(u_material.diffuse, TexCoords));
     vec3 diffuse = light.diffuse * diff * vec3(texture(u_material.diffuse, TexCoords));
-    vec3 specular = light.specular * spec * vec3(texture(u_material.specular, TexCoords));
+
+    vec3 specular = vec3(0.0);
+    if (u_material.has_specular) {
+        specular = light.specular * spec * vec3(texture(u_material.specular, TexCoords));
+    }
 
     ambient *= attenuation * intensity;
     diffuse *= attenuation * intensity;
@@ -134,6 +147,13 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 frag_pos, vec3 view_dir) {
 void main() {
     // properties
     vec3 norm = normalize(Normal);
+
+    if (u_material.has_normal) {
+        norm = texture(u_material.normal, TexCoords).rgb;
+        // remap from [0,1] to [-1,1]
+        norm = normalize(norm * 2.0 - 1.0);
+    }
+
     vec3 view_dir = normalize(u_view_pos - FragPos);
 
     // phase 1: Directional lighting

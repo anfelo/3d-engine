@@ -14,6 +14,8 @@ struct material {
     texture DiffuseMap;
     texture NormalMap;
     texture SpecularMap;
+    bool HasNormalMap;
+    bool HasSpecularMap;
 };
 
 void Texture_Create(texture *Tex, const char *File, GLenum TexType, GLenum Slot,
