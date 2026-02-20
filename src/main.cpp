@@ -7,6 +7,7 @@
 #include "context.h"
 #include "entity.h"
 #include "gui.h"
+#include "mesh.h"
 #include "renderer.h"
 #include "scene.h"
 
@@ -70,25 +71,27 @@ int main() {
     texture ContainerDiffuseMap;
     Texture_Create(&ContainerDiffuseMap, "./resources/textures/container.png",
                    GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+    ContainerDiffuseMap.Name = "diffuse";
     texture ContainerSpecularMap;
     Texture_Create(&ContainerSpecularMap,
                    "./resources/textures/container_specular.png", GL_TEXTURE_2D,
                    GL_TEXTURE1, GL_RGBA, GL_UNSIGNED_BYTE);
+    ContainerSpecularMap.Name = "specular";
 
-    material ContainerMaterial = {};
-    ContainerMaterial.DiffuseMap = ContainerDiffuseMap;
-    ContainerMaterial.SpecularMap = ContainerSpecularMap;
-    ContainerMaterial.HasNormalMap = false;
-    ContainerMaterial.HasSpecularMap = true;
+    std::vector<texture> ContainerTextures = {ContainerDiffuseMap,
+                                              ContainerSpecularMap};
+
+    mesh ContainerMesh;
+    Mesh_CreateCube(&ContainerMesh, ContainerTextures);
 
     entity Container = {
-        .Type = entity_type::Cube,
+        .Type = entity_type::CubeMesh,
         .Position = glm::vec3(0.0f, 0.0f, 0.0f),
         .Scale = glm::vec3(0.0f),
         .Rotation = glm::vec4(0.0f, 1.0f, 0.3f, 0.5f),
         .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
         .IsSelected = false,
-        .Material = ContainerMaterial,
+        .Mesh = ContainerMesh,
     };
 
     Scene_AddEntity(Scene, Container);
@@ -97,25 +100,26 @@ int main() {
     Texture_Create(&RockDiffuseMap,
                    "./resources/textures/dry_riverbed_rock_diff.png",
                    GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+    RockDiffuseMap.Name = "diffuse";
     texture RockNormalMap;
     Texture_Create(&RockNormalMap,
                    "./resources/textures/dry_riverbed_rock_normal.png",
                    GL_TEXTURE_2D, GL_TEXTURE2, GL_RGBA, GL_UNSIGNED_BYTE);
+    RockNormalMap.Name = "normal";
 
-    material RockMaterial = {};
-    RockMaterial.DiffuseMap = RockDiffuseMap;
-    RockMaterial.NormalMap = RockNormalMap;
-    RockMaterial.HasNormalMap = true;
-    RockMaterial.HasSpecularMap = false;
+    std::vector<texture> RockTextures = {RockDiffuseMap, RockNormalMap};
+
+    mesh RockMesh = ContainerMesh;
+    RockMesh.Textures = RockTextures;
 
     entity Rock = {
-        .Type = entity_type::Cube,
+        .Type = entity_type::CubeMesh,
         .Position = glm::vec3(2.0f, 0.0f, 0.0f),
         .Scale = glm::vec3(0.0f),
         .Rotation = glm::vec4(0.0f, 1.0f, 0.3f, 0.5f),
         .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
         .IsSelected = false,
-        .Material = RockMaterial,
+        .Mesh = RockMesh,
     };
 
     Scene_AddEntity(Scene, Rock);
@@ -131,7 +135,7 @@ int main() {
         sizeof(PointLightPositions) / sizeof(PointLightPositions[0]);
 
     for (size_t i = 0; i < PointLightPositionsLength; i++) {
-        light_entity PointLight = {
+        light PointLight = {
             .Entity =
                 {
                     .Position = PointLightPositions[i],
@@ -146,7 +150,7 @@ int main() {
         Scene_AddLight(Scene, PointLight);
     }
 
-    light_entity SpotLight = {
+    light SpotLight = {
         .Entity =
             {
                 .Position = Camera.Position,
@@ -160,7 +164,7 @@ int main() {
     };
     Scene_AddLight(Scene, SpotLight);
 
-    light_entity DirectionalLight = {
+    light DirectionalLight = {
         .Entity =
             {
                 .Position = glm::vec3(0.0f),

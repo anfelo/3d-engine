@@ -6,6 +6,7 @@
 #include <cerrno>
 
 #include "camera.h"
+#include "mesh.h"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/trigonometric.hpp"
@@ -398,6 +399,56 @@ void Renderer_DrawCube(const renderer &Renderer, glm::vec<3, float> Position,
     }
 }
 
+void Renderer_DrawCubeMesh(const renderer &Renderer,
+                           glm::vec<3, float> Position,
+                           glm::vec<4, float> Rotation,
+                           glm::vec<4, float> Color, mesh CubeMesh,
+                           bool IsSelected) {
+    // 1st render pass
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    glStencilMask(0xFF);
+
+    glUseProgram(Renderer.ShaderProgram.ID);
+
+    glm::vec3 CubeColor = glm::vec3(Color[0], Color[1], Color[2]);
+    glUniform3fv(Renderer.ShaderProgram.Uniforms.EntityColorUniformLoc, 1,
+                 glm::value_ptr(CubeColor));
+
+    glm::mat4 Model = glm::mat4(1.0f);
+    Model = glm::translate(Model, Position);
+    Model = glm::scale(Model, glm::vec3(1.0f));
+
+    glm::vec3 RotationVec = glm::vec3(Rotation[1], Rotation[2], Rotation[3]);
+    Model = glm::rotate(Model, glm::radians(Rotation[0]), RotationVec);
+    glUniformMatrix4fv(Renderer.ShaderProgram.Uniforms.ModelUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(Model));
+
+    Mesh_Draw(Renderer.ShaderProgram.ID, &CubeMesh);
+
+    if (IsSelected) {
+        // 2st render pass: draws the outline
+        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+        glStencilMask(0x00);
+        glDisable(GL_DEPTH_TEST);
+
+        glUseProgram(Renderer.OutlineShaderProgram.ID);
+
+        Model = glm::mat4(1.0f);
+        Model = glm::translate(Model, Position);
+        Model = glm::scale(Model, glm::vec3(1.02f));
+        Model = glm::rotate(Model, glm::radians(Rotation[0]), RotationVec);
+        glUniformMatrix4fv(
+            Renderer.OutlineShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
+            glm::value_ptr(Model));
+
+        Mesh_Draw(Renderer.ShaderProgram.ID, &CubeMesh);
+
+        glStencilMask(0xFF);
+        glStencilFunc(GL_ALWAYS, 0, 0xFF);
+        glEnable(GL_DEPTH_TEST);
+    }
+}
+
 void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
                         glm::vec<4, float> Color, float AmbientStrength,
                         float SpecularStrength) {
@@ -425,6 +476,10 @@ void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
         case entity_type::Cube:
             Renderer_DrawCube(Renderer, Entity.Position, Entity.Rotation,
                               Entity.Color, Entity.Material, Entity.IsSelected);
+            break;
+        case entity_type::CubeMesh:
+            Renderer_DrawCubeMesh(Renderer, Entity.Position, Entity.Rotation,
+                                  Entity.Color, Entity.Mesh, Entity.IsSelected);
             break;
         case entity_type::Triangle:
             Renderer_DrawTriangle(Renderer, Entity.Position);
@@ -465,14 +520,14 @@ void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
             break;
         }
         case light_type::Point: {
-            glm::vec3 PointLightAmbient =
-                glm::vec3(Scene.Lights[i].Color.r, Scene.Lights[i].Color.g,
-                          Scene.Lights[i].Color.b);
+            glm::vec3 PointLightAmbient = glm::vec3(
+                Scene.Lights[i].Entity.Color.r, Scene.Lights[i].Entity.Color.g,
+                Scene.Lights[i].Entity.Color.b);
             glm::vec3 PointLightDiffuse = glm::vec3(0.8f, 0.8f, 0.8f);
             glm::vec3 PointLightSpecular = glm::vec3(1.0f, 1.0f, 1.0f);
             glUniform3fv(Renderer.ShaderProgram.Uniforms.PointLights[i]
                              .PositionUniformLoc,
-                         1, glm::value_ptr(Scene.Lights[0].Position));
+                         1, glm::value_ptr(Scene.Lights[0].Entity.Position));
             glUniform3fv(Renderer.ShaderProgram.Uniforms.PointLights[i]
                              .AmbientUniformLoc,
                          1, glm::value_ptr(PointLightAmbient));

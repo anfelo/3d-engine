@@ -1,14 +1,15 @@
 #ifndef ENTITY_H_
 #define ENTITY_H_
 
-#include "glm/ext/vector_float3.hpp"
-#include "glm/ext/vector_float4.hpp"
+#include <glm/glm.hpp>
+#include "mesh.h"
 #include "texture.h"
 
 enum class entity_type {
     Triangle,
     Quad,
     Cube,
+    CubeMesh,
 };
 
 struct entity {
@@ -19,6 +20,7 @@ struct entity {
     glm::vec4 Color;
     bool IsSelected;
     material Material;
+    mesh Mesh;
 };
 
 enum class light_type {
@@ -27,19 +29,8 @@ enum class light_type {
     Spot,
 };
 
-struct light_entity {
-    union {
-        struct entity Entity;
-        struct {
-            entity_type Type;
-            glm::vec3 Position;
-            glm::vec3 Scale;
-            glm::vec4 Rotation;
-            glm::vec4 Color;
-            bool IsSelected;
-        };
-    };
-
+struct light {
+    entity Entity;
     light_type LightType;
     float AmbientStrength;
     float SpecularStrength;

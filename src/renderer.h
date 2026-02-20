@@ -114,6 +114,11 @@ void Renderer_DrawQuad(const renderer &Renderer, glm::vec<3, float> position);
 void Renderer_DrawCube(const renderer &Renderer, glm::vec<3, float> Position,
                        glm::vec<4, float> Rotation, glm::vec<4, float> Color,
                        material Material, bool IsSelected);
+void Renderer_DrawCubeMesh(const renderer &Renderer,
+                           glm::vec<3, float> Position,
+                           glm::vec<4, float> Rotation,
+                           glm::vec<4, float> Color, mesh CubeMesh,
+                           bool IsSelected);
 void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
                         glm::vec<4, float> Color, float AmbientStrength,
                         float SpecularStrength);

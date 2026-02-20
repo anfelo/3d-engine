@@ -8,6 +8,8 @@
 struct texture {
     GLuint ID;
     GLenum Type;
+    std::string Name;
+    std::string Path;
 };
 
 struct material {

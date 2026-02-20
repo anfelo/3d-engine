@@ -7,12 +7,12 @@
 
 struct scene {
     std::vector<entity> Entities;
-    std::vector<light_entity> Lights;
+    std::vector<light> Lights;
 };
 
 scene Scene_Create();
 void Scene_Destroy(scene &Scene);
 void Scene_AddEntity(scene &Scene, entity &Entity);
-void Scene_AddLight(scene &Scene, light_entity &Light);
+void Scene_AddLight(scene &Scene, light &Light);
 
 #endif
