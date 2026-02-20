@@ -119,6 +119,10 @@ void Renderer_DrawCubeMesh(const renderer &Renderer,
                            glm::vec<4, float> Rotation,
                            glm::vec<4, float> Color, mesh CubeMesh,
                            bool IsSelected);
+void Renderer_DrawModel(const renderer &Renderer, glm::vec<3, float> Position,
+                        glm::vec<3, float> Scale, glm::vec<4, float> Rotation,
+                        glm::vec<4, float> Color, model EntityModel,
+                        bool IsSelected);
 void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
                         glm::vec<4, float> Color, float AmbientStrength,
                         float SpecularStrength);

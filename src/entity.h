@@ -3,6 +3,7 @@
 
 #include <glm/glm.hpp>
 #include "mesh.h"
+#include "model.h"
 #include "texture.h"
 
 enum class entity_type {
@@ -10,6 +11,7 @@ enum class entity_type {
     Quad,
     Cube,
     CubeMesh,
+    Model,
 };
 
 struct entity {
@@ -21,6 +23,7 @@ struct entity {
     bool IsSelected;
     material Material;
     mesh Mesh;
+    model Model;
 };
 
 enum class light_type {

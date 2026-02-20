@@ -8,6 +8,7 @@
 #include "entity.h"
 #include "gui.h"
 #include "mesh.h"
+#include "model.h"
 #include "renderer.h"
 #include "scene.h"
 
@@ -123,6 +124,22 @@ int main() {
     };
 
     Scene_AddEntity(Scene, Rock);
+
+    model BackpackModel;
+    Model_Create(&BackpackModel, "./resources/models/backpack/backpack.obj",
+                 false);
+
+    entity Backpack = {
+        .Type = entity_type::Model,
+        .Position = glm::vec3(4.0f, 0.0f, 0.0f),
+        .Scale = glm::vec3(0.4f),
+        .Rotation = glm::vec4(0.0f, 1.0f, 0.3f, 0.5f),
+        .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
+        .IsSelected = false,
+        .Model = BackpackModel,
+    };
+
+    Scene_AddEntity(Scene, Backpack);
 
     // Lights
     glm::vec3 PointLightPositions[] = {

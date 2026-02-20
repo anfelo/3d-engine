@@ -10,6 +10,7 @@
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/trigonometric.hpp"
+#include "model.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -449,6 +450,55 @@ void Renderer_DrawCubeMesh(const renderer &Renderer,
     }
 }
 
+void Renderer_DrawModel(const renderer &Renderer, glm::vec<3, float> Position,
+                        glm::vec<3, float> Scale, glm::vec<4, float> Rotation,
+                        glm::vec<4, float> Color, model EntityModel,
+                        bool IsSelected) {
+    // 1st render pass
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    glStencilMask(0xFF);
+
+    glUseProgram(Renderer.ShaderProgram.ID);
+
+    glm::vec3 CubeColor = glm::vec3(Color[0], Color[1], Color[2]);
+    glUniform3fv(Renderer.ShaderProgram.Uniforms.EntityColorUniformLoc, 1,
+                 glm::value_ptr(CubeColor));
+
+    glm::mat4 Model = glm::mat4(1.0f);
+    Model = glm::translate(Model, Position);
+    Model = glm::scale(Model, Scale);
+
+    glm::vec3 RotationVec = glm::vec3(Rotation[1], Rotation[2], Rotation[3]);
+    Model = glm::rotate(Model, glm::radians(Rotation[0]), RotationVec);
+    glUniformMatrix4fv(Renderer.ShaderProgram.Uniforms.ModelUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(Model));
+
+    Model_Draw(Renderer.ShaderProgram.ID, &EntityModel);
+
+    if (IsSelected) {
+        // 2st render pass: draws the outline
+        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+        glStencilMask(0x00);
+        glDisable(GL_DEPTH_TEST);
+
+        glUseProgram(Renderer.OutlineShaderProgram.ID);
+
+        Model = glm::mat4(1.0f);
+        Model = glm::translate(Model, Position);
+        Model = glm::scale(Model, glm::vec3(1.02f));
+        Model = glm::rotate(Model, glm::radians(Rotation[0]), RotationVec);
+        glUniformMatrix4fv(
+            Renderer.OutlineShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
+            glm::value_ptr(Model));
+
+        Model_Draw(Renderer.ShaderProgram.ID, &EntityModel);
+
+        glStencilMask(0xFF);
+        glStencilFunc(GL_ALWAYS, 0, 0xFF);
+        glEnable(GL_DEPTH_TEST);
+    }
+}
+
 void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
                         glm::vec<4, float> Color, float AmbientStrength,
                         float SpecularStrength) {
@@ -480,6 +530,11 @@ void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
         case entity_type::CubeMesh:
             Renderer_DrawCubeMesh(Renderer, Entity.Position, Entity.Rotation,
                                   Entity.Color, Entity.Mesh, Entity.IsSelected);
+            break;
+        case entity_type::Model:
+            Renderer_DrawModel(Renderer, Entity.Position, Entity.Scale,
+                               Entity.Rotation, Entity.Color, Entity.Model,
+                               Entity.IsSelected);
             break;
         case entity_type::Triangle:
             Renderer_DrawTriangle(Renderer, Entity.Position);
