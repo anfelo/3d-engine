@@ -11,13 +11,6 @@ void Texture_Create(texture *Tex, const char *File, GLenum TexType, GLenum Slot,
     glActiveTexture(Slot);
     glBindTexture(Tex->Type, Tex->ID);
 
-    // set the texture wrapping/filtering options (on the currently bound
-    // texture object)
-    glTexParameteri(Tex->Type, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(Tex->Type, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(Tex->Type, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(Tex->Type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
     // load and generate the texture
     int Width, Height, NrChannels;
     unsigned char *Data = stbi_load(File, &Width, &Height, &NrChannels, 0);
@@ -44,6 +37,16 @@ void Texture_Create(texture *Tex, const char *File, GLenum TexType, GLenum Slot,
         glTexImage2D(Tex->Type, 0, InternalFormat, Width, Height, 0, Format,
                      PixelType, Data);
         glGenerateMipmap(Tex->Type);
+
+        // set the texture wrapping/filtering options (on the currently bound
+        // texture object)
+        glTexParameteri(Tex->Type, GL_TEXTURE_WRAP_S,
+                        Format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+        glTexParameteri(Tex->Type, GL_TEXTURE_WRAP_T,
+                        Format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+        glTexParameteri(Tex->Type, GL_TEXTURE_MIN_FILTER,
+                        GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(Tex->Type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     } else {
         std::cout << "Failed to load texture" << std::endl;
     }

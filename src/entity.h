@@ -11,6 +11,7 @@ enum class entity_type {
     Quad,
     Cube,
     CubeMesh,
+    QuadMesh,
     Model,
 };
 

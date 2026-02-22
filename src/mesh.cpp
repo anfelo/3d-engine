@@ -189,17 +189,34 @@ void Mesh_CreateCube(mesh *Mesh, std::vector<texture> Textures) {
     };
 
     std::vector<GLuint> Indices = {// Front face
-                                   0, 1, 2, 2, 4, 5,
+                                   0, 2, 1, 2, 5, 4,
                                    // Back face
                                    6, 7, 8, 8, 10, 11,
                                    // Left face
                                    12, 13, 14, 14, 16, 17,
                                    // Right face
-                                   18, 19, 20, 20, 22, 23,
+                                   18, 20, 19, 20, 23, 22,
                                    // Bottom face
                                    24, 25, 26, 26, 28, 29,
                                    // Top face
-                                   30, 31, 32, 32, 34, 35};
+                                   30, 32, 31, 32, 35, 34};
+
+    Mesh_Create(Mesh, Vertices, Indices, Textures);
+}
+
+void Mesh_CreateQuad(mesh *Mesh, std::vector<texture> Textures) {
+    std::vector<vertex> Vertices = {
+        {glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f),
+         glm::vec2(0.0f, 0.0f)},
+        {glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f),
+         glm::vec2(1.0f, 0.0f)},
+        {glm::vec3(0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f),
+         glm::vec2(1.0f, 1.0f)},
+        {glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f),
+         glm::vec2(0.0f, 1.0f)},
+    };
+
+    std::vector<GLuint> Indices = {0, 1, 2, 2, 3, 0};
 
     Mesh_Create(Mesh, Vertices, Indices, Textures);
 }

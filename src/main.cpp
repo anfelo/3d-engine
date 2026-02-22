@@ -141,6 +141,71 @@ int main() {
 
     Scene_AddEntity(Scene, Backpack);
 
+    texture GrassTexture;
+    Texture_Create(&GrassTexture, "./resources/textures/grass.png",
+                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+
+    std::vector<texture> GrassTextures = {GrassTexture};
+
+    std::vector<glm::vec3> Vegetation;
+    Vegetation.push_back(glm::vec3(-1.5f, 0.0f, -0.48f));
+    Vegetation.push_back(glm::vec3(1.5f, 0.0f, 0.51f));
+    Vegetation.push_back(glm::vec3(0.0f, 0.0f, 0.7f));
+    Vegetation.push_back(glm::vec3(-0.3f, 0.0f, -2.3f));
+    Vegetation.push_back(glm::vec3(0.5f, 0.0f, -0.6f));
+
+    mesh GrassMesh;
+    Mesh_CreateQuad(&GrassMesh, GrassTextures);
+
+    for (unsigned int i = 0; i < Vegetation.size(); i++) {
+        entity Grass = {
+            .Type = entity_type::QuadMesh,
+            .Position = Vegetation[i],
+            .Scale = glm::vec3(1.0f),
+            .Rotation = glm::vec4(0.0f),
+            .Color = glm::vec4(1.0f),
+            .Mesh = GrassMesh,
+        };
+
+        Scene_AddEntity(Scene, Grass);
+    }
+
+    texture WindowTexture;
+    Texture_Create(&WindowTexture,
+                   "./resources/textures/blending_transparent_window.png",
+                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+
+    std::vector<texture> WindowTextures = {WindowTexture};
+
+    std::vector<glm::vec3> Windows;
+    Windows.push_back(glm::vec3(-1.5f, 0.0f, -0.48f));
+    Windows.push_back(glm::vec3(1.5f, 0.0f, 0.51f));
+    Windows.push_back(glm::vec3(0.0f, 0.0f, 0.7f));
+    Windows.push_back(glm::vec3(-0.3f, 0.0f, -2.3f));
+    Windows.push_back(glm::vec3(0.5f, 0.0f, -0.6f));
+
+    glm::vec3 CameraPosition = Camera.Position;
+    sort(Windows.begin(), Windows.end(),
+         [&CameraPosition](const glm::vec3 &A, const glm::vec3 &B) {
+             return length(CameraPosition - A) >= length(CameraPosition - B);
+         });
+
+    mesh WindowMesh;
+    Mesh_CreateQuad(&WindowMesh, WindowTextures);
+
+    for (unsigned int i = 0; i < Windows.size(); i++) {
+        entity Window = {
+            .Type = entity_type::QuadMesh,
+            .Position = Windows[i],
+            .Scale = glm::vec3(1.0f),
+            .Rotation = glm::vec4(0.0f),
+            .Color = glm::vec4(1.0f),
+            .Mesh = WindowMesh,
+        };
+
+        Scene_AddEntity(Scene, Window);
+    }
+
     // Lights
     glm::vec3 PointLightPositions[] = {
         glm::vec3(0.7f, 0.2f, 2.0f),

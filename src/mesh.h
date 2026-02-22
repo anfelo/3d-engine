@@ -32,6 +32,7 @@ struct mesh {
 void Mesh_Create(mesh *Mesh, std::vector<vertex> Vertices,
                  std::vector<GLuint> Indices, std::vector<texture> Textures);
 void Mesh_CreateCube(mesh *Mesh, std::vector<texture> Textures);
+void Mesh_CreateQuad(mesh *Mesh, std::vector<texture> Textures);
 void Mesh_Setup(mesh *Mesh);
 void Mesh_Draw(GLuint ShaderID, mesh *Mesh);
 

@@ -102,6 +102,7 @@ struct shader_program {
 struct renderer {
     shader_program ShaderProgram;
     shader_program OutlineShaderProgram;
+    shader_program QuadShaderProgram;
 };
 
 renderer Renderer_Create(void);
@@ -110,7 +111,10 @@ shader_program Renderer_CreateShaderProgram(const char *VertexFile,
                                             const char *FragmentFile);
 void Renderer_DrawTriangle(const renderer &Renderer,
                            glm::vec<3, float> position);
-void Renderer_DrawQuad(const renderer &Renderer, glm::vec<3, float> position);
+void Renderer_DrawQuad(const renderer &Renderer, glm::vec<3, float> Position,
+                       material Material);
+void Renderer_DrawQuadMesh(const renderer &Renderer,
+                           glm::vec<3, float> Position, mesh Mesh);
 void Renderer_DrawCube(const renderer &Renderer, glm::vec<3, float> Position,
                        glm::vec<4, float> Rotation, glm::vec<4, float> Color,
                        material Material, bool IsSelected);

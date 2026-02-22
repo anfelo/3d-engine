@@ -11,6 +11,7 @@
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/trigonometric.hpp"
 #include "model.h"
+#include "texture.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -37,15 +38,23 @@ renderer Renderer_Create() {
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
+
     glEnable(GL_STENCIL_TEST);
     glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glEnable(GL_CULL_FACE);
 
     renderer Renderer;
     Renderer.ShaderProgram = Renderer_CreateShaderProgram(
         "./resources/shaders/default.vert", "./resources/shaders/default.frag");
     Renderer.OutlineShaderProgram = Renderer_CreateShaderProgram(
         "./resources/shaders/default.vert", "./resources/shaders/outline.frag");
+    Renderer.QuadShaderProgram = Renderer_CreateShaderProgram(
+        "./resources/shaders/default.vert", "./resources/shaders/quad.frag");
 
     // ### Triangle ###
     glGenBuffers(1, &TriangleMesh.VBO);
@@ -313,28 +322,46 @@ void Renderer_DrawTriangle(const renderer &Renderer,
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
-void Renderer_DrawQuad(const renderer &Renderer, glm::vec<3, float> position) {
-    glm::mat4 view = glm::mat4(1.0f);
-    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-    glm::mat4 projection;
-    projection =
-        glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
-
-    // Sets the uniform value
-    glUniformMatrix4fv(Renderer.ShaderProgram.Uniforms.ViewUniformLoc, 1,
-                       GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(Renderer.ShaderProgram.Uniforms.ProjectionUniformLoc, 1,
-                       GL_FALSE, glm::value_ptr(projection));
-
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, position);
-    glUniformMatrix4fv(Renderer.ShaderProgram.Uniforms.ModelUniformLoc, 1,
-                       GL_FALSE, glm::value_ptr(model));
-
+void Renderer_DrawQuad(const renderer &Renderer, glm::vec<3, float> Position,
+                       material Material) {
     glUseProgram(Renderer.ShaderProgram.ID);
+
+    glUniform1i(Renderer.ShaderProgram.Uniforms.Material.DiffuseUniformLoc, 0);
+    glUniform1i(Renderer.ShaderProgram.Uniforms.Material.SpecularUniformLoc, 1);
+    glUniform1i(Renderer.ShaderProgram.Uniforms.Material.NormalUniformLoc, 2);
+    glUniform1i(Renderer.ShaderProgram.Uniforms.Material.HasNormalUniformLoc,
+                Material.HasNormalMap ? 1 : 0);
+    glUniform1i(Renderer.ShaderProgram.Uniforms.Material.HasSpecularUniformLoc,
+                Material.HasSpecularMap ? 1 : 0);
+
+    Texture_Bind(&Material.DiffuseMap, GL_TEXTURE0);
+    Texture_Bind(&Material.SpecularMap, GL_TEXTURE1);
+    Texture_Bind(&Material.NormalMap, GL_TEXTURE2);
+
+    glm::mat4 Model = glm::mat4(1.0f);
+    Model = glm::translate(Model, Position);
+
+    glUniformMatrix4fv(Renderer.ShaderProgram.Uniforms.ModelUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(Model));
+
     glBindVertexArray(QuadMesh.VAO);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+}
+
+void Renderer_DrawQuadMesh(const renderer &Renderer,
+                           glm::vec<3, float> Position, mesh Mesh) {
+    glDisable(GL_CULL_FACE);
+    glUseProgram(Renderer.QuadShaderProgram.ID);
+
+    glm::mat4 Model = glm::mat4(1.0f);
+    Model = glm::translate(Model, Position);
+
+    glUniformMatrix4fv(Renderer.QuadShaderProgram.Uniforms.ModelUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(Model));
+
+    Mesh_Draw(Renderer.QuadShaderProgram.ID, &Mesh);
+    glEnable(GL_CULL_FACE);
 }
 
 void Renderer_DrawCube(const renderer &Renderer, glm::vec<3, float> Position,
@@ -442,7 +469,7 @@ void Renderer_DrawCubeMesh(const renderer &Renderer,
             Renderer.OutlineShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
             glm::value_ptr(Model));
 
-        Mesh_Draw(Renderer.ShaderProgram.ID, &CubeMesh);
+        Mesh_Draw(Renderer.OutlineShaderProgram.ID, &CubeMesh);
 
         glStencilMask(0xFF);
         glStencilFunc(GL_ALWAYS, 0, 0xFF);
@@ -485,16 +512,16 @@ void Renderer_DrawModel(const renderer &Renderer, glm::vec<3, float> Position,
 
         Model = glm::mat4(1.0f);
         Model = glm::translate(Model, Position);
-        Model = glm::scale(Model, glm::vec3(1.02f));
+        Model = glm::scale(Model, Scale + 0.01f);
         Model = glm::rotate(Model, glm::radians(Rotation[0]), RotationVec);
         glUniformMatrix4fv(
             Renderer.OutlineShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
             glm::value_ptr(Model));
 
-        Model_Draw(Renderer.ShaderProgram.ID, &EntityModel);
+        Model_Draw(Renderer.OutlineShaderProgram.ID, &EntityModel);
 
         glStencilMask(0xFF);
-        glStencilFunc(GL_ALWAYS, 0, 0xFF);
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
         glEnable(GL_DEPTH_TEST);
     }
 }
@@ -540,11 +567,15 @@ void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
             Renderer_DrawTriangle(Renderer, Entity.Position);
             break;
         case entity_type::Quad:
-            Renderer_DrawQuad(Renderer, Entity.Position);
+            Renderer_DrawQuad(Renderer, Entity.Position, Entity.Material);
+            break;
+        case entity_type::QuadMesh:
+            Renderer_DrawQuadMesh(Renderer, Entity.Position, Entity.Mesh);
             break;
         }
     }
 
+    glUseProgram(Renderer.ShaderProgram.ID);
     glUniform1f(Renderer.ShaderProgram.Uniforms.Material.ShininessUniformLoc,
                 32.0f);
 
@@ -680,6 +711,17 @@ void Renderer_BeginMode3D(const renderer &Renderer, const camera &Camera,
 
     glUniform3fv(Renderer.OutlineShaderProgram.Uniforms.ViewPositionUniformLoc,
                  1, glm::value_ptr(Camera.Position));
+
+    // Set view & projection for quad shader
+    glUseProgram(Renderer.QuadShaderProgram.ID);
+    // Sets the uniform value
+    glUniformMatrix4fv(Renderer.QuadShaderProgram.Uniforms.ViewUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(View));
+    glUniformMatrix4fv(Renderer.QuadShaderProgram.Uniforms.ProjectionUniformLoc,
+                       1, GL_FALSE, glm::value_ptr(Projection));
+
+    glUniform3fv(Renderer.QuadShaderProgram.Uniforms.ViewPositionUniformLoc, 1,
+                 glm::value_ptr(Camera.Position));
 }
 
 triangle_mesh Renderer_GetTriangleMesh() {
