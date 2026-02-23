@@ -7,8 +7,10 @@
 
 struct context {
     GLFWwindow *Window;
-    float ScreenWidth;
-    float ScreenHeight;
+    int ScreenWidth;
+    int ScreenHeight;
+    int FramebufferWidth;
+    int FramebufferHeight;
 
     camera Camera;
 

@@ -2,6 +2,7 @@
 #define RENDERER_H_
 
 #include "camera.h"
+#include "context.h"
 #include "scene.h"
 #include "texture.h"
 
@@ -86,6 +87,8 @@ struct uniform_locators {
     GLuint AmbientStrengthUniformLoc;
     GLuint SpecularStrengthUniformLoc;
 
+    GLuint ScreenTextureUniformLoc;
+
     material_uniforms Material;
 
     directional_light DirectionalLight;
@@ -103,10 +106,19 @@ struct renderer {
     shader_program ShaderProgram;
     shader_program OutlineShaderProgram;
     shader_program QuadShaderProgram;
+    shader_program ScreenShaderProgram;
+
+    // Framebuffer stuff
+    GLuint FrameBufferVAO, FrameBufferVBO;
+    GLuint FrameBuffer;
+    GLuint TextureColorBuffer;
+    GLuint RBO; // render buffer object
 };
 
-renderer Renderer_Create(void);
+renderer Renderer_Create(int ScreenWidth, int ScreenHeight);
 void Renderer_Destroy(renderer &Renderer);
+void Renderer_ResizeFramebuffer(const renderer &Renderer, int ScreenWidth,
+                                int ScreenHeight);
 shader_program Renderer_CreateShaderProgram(const char *VertexFile,
                                             const char *FragmentFile);
 void Renderer_DrawTriangle(const renderer &Renderer,
@@ -131,10 +143,12 @@ void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
                         glm::vec<4, float> Color, float AmbientStrength,
                         float SpecularStrength);
 void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
-                        const camera &Camera);
+                        const context &Context);
+void Renderer_DrawSceneLights(const renderer &Renderer, const scene &Scene,
+                              const camera &Camera);
 void Renderer_ClearBackground(float R, float G, float B, float Alpha);
-void Renderer_BeginMode3D(const renderer &Renderer, const camera &Camera,
-                          float ScreenWidth, float ScreenHeight);
+void Renderer_SetCameraUniforms(const renderer &Renderer, const camera &Camera,
+                                float ScreenWidth, float ScreenHeight);
 
 triangle_mesh Renderer_GetTriangleMesh();
 quad_mesh Renderer_GetQuadMesh();

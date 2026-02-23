@@ -40,8 +40,10 @@ int main() {
         glfwCreateWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "3D Engine", NULL, NULL);
     Context = {
         .Window = Window,
-        .ScreenWidth = (float)SCREEN_WIDTH,
-        .ScreenHeight = (float)SCREEN_HEIGHT,
+        .ScreenWidth = SCREEN_WIDTH,
+        .ScreenHeight = SCREEN_HEIGHT,
+        .FramebufferWidth = SCREEN_WIDTH,
+        .FramebufferHeight = SCREEN_HEIGHT,
         .DeltaTime = 0.0f,
     };
 
@@ -61,8 +63,15 @@ int main() {
         return -1;
     }
 
+    glfwGetFramebufferSize(Context.Window, &Context.FramebufferWidth,
+                           &Context.FramebufferHeight);
+    Context.ScreenWidth = Context.FramebufferWidth;
+    Context.ScreenHeight = Context.FramebufferHeight;
+    glViewport(0, 0, Context.FramebufferWidth, Context.FramebufferHeight);
+
     gui Gui = Gui_Create(Context);
-    renderer Renderer = Renderer_Create();
+    renderer Renderer =
+        Renderer_Create(Context.ScreenWidth, Context.ScreenHeight);
     camera Camera = Camera_Create(glm::vec3(0.0f, 0.0f, 3.0f),
                                   glm::vec3(0.0f, 1.0f, 0.0f), YAW, PITCH);
     Context.Camera = Camera;
@@ -269,6 +278,23 @@ int main() {
         Context.DeltaTime = CurrentFrame - Context.LastFrame;
         Context.LastFrame = CurrentFrame;
 
+        // This keeps the framebuffer dimensions in sync with the window
+        // dimensions
+        glfwGetFramebufferSize(Context.Window, &Context.FramebufferWidth,
+                               &Context.FramebufferHeight);
+        if (Context.FramebufferWidth <= 0 || Context.FramebufferHeight <= 0) {
+            glfwPollEvents();
+            continue;
+        }
+
+        if (Context.ScreenWidth != Context.FramebufferWidth ||
+            Context.ScreenHeight != Context.FramebufferHeight) {
+            Context.ScreenWidth = Context.FramebufferWidth;
+            Context.ScreenHeight = Context.FramebufferHeight;
+            Renderer_ResizeFramebuffer(Renderer, Context.FramebufferWidth,
+                                       Context.FramebufferHeight);
+        }
+
         // input
         // --------------------
         if (!Gui.io.WantCaptureMouse) {
@@ -283,13 +309,7 @@ int main() {
         // ------
         Renderer_ClearBackground(0.1f, 0.1f, 0.1f, 1.0f);
 
-        Renderer_BeginMode3D(Renderer, Context.Camera, Context.ScreenWidth,
-                             Context.ScreenHeight);
-
-        Renderer_DrawScene(Renderer, Scene, Context.Camera);
-
-        // TODO: End the camera 3d rendering
-        // Renderer_EndMode3D();
+        Renderer_DrawScene(Renderer, Scene, Context);
 
         // gui
         // ------
@@ -390,6 +410,9 @@ void FramebufferSizeCallback(GLFWwindow *Window, int Width, int Height) {
     // and height will be significantly larger than specified on retina
     // displays.
     glViewport(0, 0, Width, Height);
+
+    Context.ScreenWidth = Width;
+    Context.ScreenHeight = Height;
 }
 
 void MouseScrollCallback(GLFWwindow *Window, double OffsetX, double OffsetY) {

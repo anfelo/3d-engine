@@ -34,7 +34,7 @@ std::string GetFileContents(const char *Filename) {
     throw errno;
 }
 
-renderer Renderer_Create() {
+renderer Renderer_Create(int ScreenWidth, int ScreenHeight) {
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
@@ -55,6 +55,9 @@ renderer Renderer_Create() {
         "./resources/shaders/default.vert", "./resources/shaders/outline.frag");
     Renderer.QuadShaderProgram = Renderer_CreateShaderProgram(
         "./resources/shaders/default.vert", "./resources/shaders/quad.frag");
+    Renderer.ScreenShaderProgram =
+        Renderer_CreateShaderProgram("./resources/shaders/framebuffer.vert",
+                                     "./resources/shaders/framebuffer.frag");
 
     // ### Triangle ###
     glGenBuffers(1, &TriangleMesh.VBO);
@@ -123,6 +126,67 @@ renderer Renderer_Create() {
 
     glBindVertexArray(0);
 
+    // ### Screen Quad ###
+    // Used for the framebuffer post-processing
+    float ScreenQuadVertices[] = {
+        // vertex attributes for a quad that fills the
+        // entire screen in Normalized Device Coordinates.
+        // positions   // texCoords
+        -1.0f, 1.0f, 0.0f, 1.0f,  -1.0f, -1.0f,
+        0.0f,  0.0f, 1.0f, -1.0f, 1.0f,  0.0f,
+
+        -1.0f, 1.0f, 0.0f, 1.0f,  1.0f,  -1.0f,
+        1.0f,  0.0f, 1.0f, 1.0f,  1.0f,  1.0f,
+    };
+    glGenVertexArrays(1, &Renderer.FrameBufferVAO);
+    glGenBuffers(1, &Renderer.FrameBufferVBO);
+    glBindVertexArray(Renderer.FrameBufferVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, Renderer.FrameBufferVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(ScreenQuadVertices),
+                 &ScreenQuadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                          (void *)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+                          (void *)(2 * sizeof(float)));
+
+    glUseProgram(Renderer.ScreenShaderProgram.ID);
+    glUniform1i(Renderer.ScreenShaderProgram.Uniforms.ScreenTextureUniformLoc,
+                0);
+
+    // ### Framebuffer Configuration ###
+    glGenFramebuffers(1, &Renderer.FrameBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, Renderer.FrameBuffer);
+    // create a color attachment texture
+    glGenTextures(1, &Renderer.TextureColorBuffer);
+    glBindTexture(GL_TEXTURE_2D, Renderer.TextureColorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ScreenWidth, ScreenHeight, 0, GL_RGB,
+                 GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                           Renderer.TextureColorBuffer, 0);
+    // create a renderbuffer object for depth and stencil attachment (we won't
+    // be sampling these)
+    glGenRenderbuffers(1, &Renderer.RBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, Renderer.RBO);
+
+    // use a single renderbuffer object for
+    // both a depth AND stencil buffer.
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, ScreenWidth,
+                          ScreenHeight);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
+                              GL_RENDERBUFFER,
+                              Renderer.RBO); // now actually attach it
+    // now that we actually created the framebuffer and added all attachments we
+    // want to check if it is actually complete now
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!"
+                  << std::endl;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     return Renderer;
 }
 
@@ -135,6 +199,39 @@ void Renderer_Destroy(renderer &Renderer) {
     glDeleteBuffers(1, &QuadMesh.EBO);
 
     glDeleteProgram(Renderer.ShaderProgram.ID);
+    glDeleteProgram(Renderer.OutlineShaderProgram.ID);
+    glDeleteProgram(Renderer.QuadShaderProgram.ID);
+    glDeleteProgram(Renderer.ScreenShaderProgram.ID);
+
+    glDeleteFramebuffers(1, &Renderer.FrameBuffer);
+    glDeleteTextures(1, &Renderer.TextureColorBuffer);
+    glDeleteRenderbuffers(1, &Renderer.RBO);
+}
+
+void Renderer_ResizeFramebuffer(const renderer &Renderer, int ScreenWidth,
+                                int ScreenHeight) {
+    if (ScreenWidth <= 0 || ScreenHeight <= 0) {
+        return;
+    }
+
+    glBindTexture(GL_TEXTURE_2D, Renderer.TextureColorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ScreenWidth, ScreenHeight, 0, GL_RGB,
+                 GL_UNSIGNED_BYTE, NULL);
+
+    glBindRenderbuffer(GL_RENDERBUFFER, Renderer.RBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, ScreenWidth,
+                          ScreenHeight);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, Renderer.FrameBuffer);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete after "
+                     "resize!"
+                  << std::endl;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 shader_program Renderer_CreateShaderProgram(const char *VertexFile,
@@ -288,6 +385,10 @@ shader_program Renderer_CreateShaderProgram(const char *VertexFile,
         glGetUniformLocation(ShaderProgram.ID, "u_material.has_normal");
     ShaderProgram.Uniforms.Material.HasSpecularUniformLoc =
         glGetUniformLocation(ShaderProgram.ID, "u_material.has_specular");
+
+    // ScreenTexture
+    ShaderProgram.Uniforms.ScreenTextureUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_screen_texture");
 
     return ShaderProgram;
 }
@@ -546,7 +647,23 @@ void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
 }
 
 void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
-                        const camera &Camera) {
+                        const context &Context) {
+
+    // 1st. Pass: Draw the scene to the framebuffer
+    // bind to framebuffer and draw scene as we normally would to color
+    // texture
+    glBindFramebuffer(GL_FRAMEBUFFER, Renderer.FrameBuffer);
+    glViewport(0, 0, Context.FramebufferWidth, Context.FramebufferHeight);
+
+    // enable depth testing (is disabled for
+    // rendering screen-space quad)
+    glEnable(GL_DEPTH_TEST);
+    // make sure we clear the framebuffer's content
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    Renderer_SetCameraUniforms(Renderer, Context.Camera, Context.ScreenWidth,
+                               Context.ScreenHeight);
     // Entities
     for (entity Entity : Scene.Entities) {
         switch (Entity.Type) {
@@ -575,6 +692,33 @@ void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
         }
     }
 
+    Renderer_DrawSceneLights(Renderer, Scene, Context.Camera);
+
+    // 2nd. Pass: Draw whatever is in the Framebuffer to the screen quad
+    // now bind back to default framebuffer and draw a quad plane with the
+    // attached framebuffer color texture
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, Context.FramebufferWidth, Context.FramebufferHeight);
+    // disable depth test so screen-space quad
+    // isn't discarded due to depth test.
+    glDisable(GL_DEPTH_TEST);
+    // clear all relevant buffers
+    // set clear color to white (not really necessary actually,
+    // since we won't be able to see behind the quad anyways)
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(Renderer.ScreenShaderProgram.ID);
+    glBindVertexArray(Renderer.FrameBufferVAO);
+
+    // use the color attachment texture as
+    // the texture of the quad plane
+    glBindTexture(GL_TEXTURE_2D, Renderer.TextureColorBuffer);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void Renderer_DrawSceneLights(const renderer &Renderer, const scene &Scene,
+                              const camera &Camera) {
     glUseProgram(Renderer.ShaderProgram.ID);
     glUniform1f(Renderer.ShaderProgram.Uniforms.Material.ShininessUniformLoc,
                 32.0f);
@@ -684,8 +828,8 @@ void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
     }
 }
 
-void Renderer_BeginMode3D(const renderer &Renderer, const camera &Camera,
-                          float ScreenWidth, float ScreenHeight) {
+void Renderer_SetCameraUniforms(const renderer &Renderer, const camera &Camera,
+                                float ScreenWidth, float ScreenHeight) {
     glm::mat4 View = Camera_GetViewMatrix(Camera);
     glm::mat4 Projection = glm::perspective(
         glm::radians(Camera.Zoom), ScreenWidth / ScreenHeight, 0.1f, 100.0f);

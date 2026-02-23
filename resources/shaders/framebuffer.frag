@@ -3,11 +3,77 @@ out vec4 FragColor;
 
 in vec2 TexCoords;
 
-uniform sampler2D screen_texture;
+uniform sampler2D u_screen_texture;
+
+const float offset = 1.0 / 300.0;
+vec2 offsets[9] = vec2[](
+    vec2(-offset,  offset), // top-left
+    vec2( 0.0f,    offset), // top-center
+    vec2( offset,  offset), // top-right
+    vec2(-offset,  0.0f),   // center-left
+    vec2( 0.0f,    0.0f),   // center-center
+    vec2( offset,  0.0f),   // center-right
+    vec2(-offset, -offset), // bottom-left
+    vec2( 0.0f,   -offset), // bottom-center
+    vec2( offset, -offset)  // bottom-right
+);
+
+float sharpen_kernel[9] = float[](
+    -1, -1, -1,
+    -1,  9, -1,
+    -1, -1, -1
+);
+
+float edge_kernel[9] = float[](
+    1, 1, 1,
+    1, -8, 1,
+    1, 1, 1
+);
+
+float blur_kernel[9] = float[](
+    1.0 / 16, 2.0 / 16, 1.0 / 16,
+    2.0 / 16, 4.0 / 16, 2.0 / 16,
+    1.0 / 16, 2.0 / 16, 1.0 / 16
+);
 
 void main()
 {
-    vec3 color = texture(screen_texture, TexCoords).rgb;
+    vec4 color = texture(u_screen_texture, TexCoords);
 
-    FragColor = vec4(col, 1.0);
+    // Inversion
+    // color = vec4(vec3(1.0 - texture(u_screen_texture, TexCoords)), 1.0);
+
+    // Grayscale
+    // color = texture(u_screen_texture, TexCoords);
+    // float average = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+    // color = vec4(average, average, average, 1.0);
+
+    // Kernel Effects
+    // Sharpen
+    // vec3 sample_tex[9];
+    // for(int i = 0; i < 9; i++)
+    // {
+    //     sample_tex[i] = vec3(texture(u_screen_texture, TexCoords.st + offsets[i]));
+    // }
+    // vec3 col = vec3(0.0);
+    // for(int i = 0; i < 9; i++) {
+    //     col += sample_tex[i] * sharpen_kernel[i];
+    // }
+    // color = vec4(col, 1.0);
+
+    // Blur
+    // vec3 col = vec3(0.0);
+    // for(int i = 0; i < 9; i++) {
+    //     col += sample_tex[i] * blur_kernel[i];
+    // }
+    // color = vec4(col, 1.0);
+
+    // Edges
+    // vec3 col = vec3(0.0);
+    // for(int i = 0; i < 9; i++) {
+    //     col += sample_tex[i] * edge_kernel[i];
+    // }
+    // color = vec4(col, 1.0);
+
+    FragColor = vec4(color.rgb, 1.0);
 }
