@@ -11,6 +11,7 @@
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/trigonometric.hpp"
 #include "model.h"
+#include "scene.h"
 #include "texture.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -58,6 +59,8 @@ renderer Renderer_Create(int ScreenWidth, int ScreenHeight) {
     Renderer.ScreenShaderProgram =
         Renderer_CreateShaderProgram("./resources/shaders/framebuffer.vert",
                                      "./resources/shaders/framebuffer.frag");
+    Renderer.SkyBoxShaderProgram = Renderer_CreateShaderProgram(
+        "./resources/shaders/cubemap.vert", "./resources/shaders/cubemap.frag");
 
     // ### Triangle ###
     glGenBuffers(1, &TriangleMesh.VBO);
@@ -646,6 +649,18 @@ void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
                  &SpecularStrength);
 }
 
+void Renderer_DrawSkybox(const renderer &Renderer, const skybox &Skybox) {
+    glDepthMask(GL_FALSE);
+    glDisable(GL_CULL_FACE);
+    glUseProgram(Renderer.SkyBoxShaderProgram.ID);
+
+    mesh SkyboxMesh = Skybox.Mesh;
+    Mesh_Draw(Renderer.SkyBoxShaderProgram.ID, &SkyboxMesh);
+
+    glDepthMask(GL_TRUE);
+    glEnable(GL_CULL_FACE);
+}
+
 void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
                         const context &Context) {
 
@@ -662,8 +677,13 @@ void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // Sets the view & projection uniforms for all the programs
     Renderer_SetCameraUniforms(Renderer, Context.Camera, Context.ScreenWidth,
                                Context.ScreenHeight);
+
+    // Skybox
+    Renderer_DrawSkybox(Renderer, Scene.Skybox);
+
     // Entities
     for (entity Entity : Scene.Entities) {
         switch (Entity.Type) {
@@ -866,6 +886,19 @@ void Renderer_SetCameraUniforms(const renderer &Renderer, const camera &Camera,
 
     glUniform3fv(Renderer.QuadShaderProgram.Uniforms.ViewPositionUniformLoc, 1,
                  glm::value_ptr(Camera.Position));
+
+    // Set view & projection for skybox shader
+    View = glm::mat4(glm::mat3(View));
+    glUseProgram(Renderer.SkyBoxShaderProgram.ID);
+    // Sets the uniform value
+    glUniformMatrix4fv(Renderer.SkyBoxShaderProgram.Uniforms.ViewUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(View));
+    glUniformMatrix4fv(
+        Renderer.SkyBoxShaderProgram.Uniforms.ProjectionUniformLoc, 1, GL_FALSE,
+        glm::value_ptr(Projection));
+
+    glUniform3fv(Renderer.SkyBoxShaderProgram.Uniforms.ViewPositionUniformLoc,
+                 1, glm::value_ptr(Camera.Position));
 }
 
 triangle_mesh Renderer_GetTriangleMesh() {

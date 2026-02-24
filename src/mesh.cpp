@@ -98,7 +98,7 @@ void Mesh_Draw(GLuint ShaderID, mesh *Mesh) {
         glUniform1i(
             glGetUniformLocation(ShaderID, ("u_material." + Name).c_str()), i);
         // and finally bind the texture
-        glBindTexture(GL_TEXTURE_2D, Mesh->Textures[i].ID);
+        glBindTexture(Mesh->Textures[i].Type, Mesh->Textures[i].ID);
     }
 
     // draw mesh

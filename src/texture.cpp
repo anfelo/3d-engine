@@ -57,6 +57,33 @@ void Texture_Create(texture *Tex, const char *File, GLenum TexType, GLenum Slot,
     glBindTexture(Tex->Type, 0);
 }
 
+void Texture_CreateCubemap(texture *Tex, std::vector<std::string> Faces) {
+    Tex->Type = GL_TEXTURE_CUBE_MAP;
+
+    glGenTextures(1, &Tex->ID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, Tex->ID);
+
+    int width, height, nrChannels;
+    for (unsigned int i = 0; i < Faces.size(); i++) {
+        unsigned char *data =
+            stbi_load(Faces[i].c_str(), &width, &height, &nrChannels, 0);
+        if (data) {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width,
+                         height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+            stbi_image_free(data);
+        } else {
+            std::cout << "Cubemap tex failed to load at path: " << Faces[i]
+                      << std::endl;
+            stbi_image_free(data);
+        }
+    }
+    glTexParameteri(Tex->Type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(Tex->Type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(Tex->Type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(Tex->Type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(Tex->Type, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+}
+
 void Texture_Uniform(GLuint ShaderID, const char *Uniform, GLuint Unit) {
     GLuint TexUni = glGetUniformLocation(ShaderID, Uniform);
     glUseProgram(ShaderID);

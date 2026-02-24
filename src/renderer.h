@@ -107,6 +107,7 @@ struct renderer {
     shader_program OutlineShaderProgram;
     shader_program QuadShaderProgram;
     shader_program ScreenShaderProgram;
+    shader_program SkyBoxShaderProgram;
 
     // Framebuffer stuff
     GLuint FrameBufferVAO, FrameBufferVBO;
@@ -142,6 +143,7 @@ void Renderer_DrawModel(const renderer &Renderer, glm::vec<3, float> Position,
 void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
                         glm::vec<4, float> Color, float AmbientStrength,
                         float SpecularStrength);
+void Renderer_DrawSkybox(const renderer &Renderer, const skybox &Skybox);
 void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
                         const context &Context);
 void Renderer_DrawSceneLights(const renderer &Renderer, const scene &Scene,

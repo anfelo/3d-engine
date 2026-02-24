@@ -1,4 +1,5 @@
 #include "gui.h"
+#include "entity.h"
 #include "glm/gtc/type_ptr.hpp"
 #include "imgui/imgui.h"
 #include "scene.h"
@@ -27,6 +28,10 @@ void Gui_Draw(scene &Scene) {
     ImGui::Begin("Entity Properties");
     for (size_t i = 0; i < Scene.Entities.size(); i++) {
         entity &Entity = Scene.Entities.at(i);
+        if (Entity.Type != entity_type::CubeMesh &&
+            Entity.Type != entity_type::Model) {
+            continue;
+        }
 
         ImGui::PushID(i);
         ImGui::Text("Entity %d", (int)(i + 1));

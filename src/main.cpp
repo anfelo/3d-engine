@@ -78,6 +78,24 @@ int main() {
 
     scene Scene = Scene_Create();
 
+    texture SkyboxCubemap;
+    std::vector<std::string> SkyboxFaces{
+        "./resources/textures/skybox/right.jpg",
+        "./resources/textures/skybox/left.jpg",
+        "./resources/textures/skybox/top.jpg",
+        "./resources/textures/skybox/bottom.jpg",
+        "./resources/textures/skybox/front.jpg",
+        "./resources/textures/skybox/back.jpg",
+    };
+    Texture_CreateCubemap(&SkyboxCubemap, SkyboxFaces);
+    std::vector<texture> SkyboxTextures = {SkyboxCubemap};
+
+    mesh SkyboxMesh;
+    Mesh_CreateCube(&SkyboxMesh, SkyboxTextures);
+
+    skybox Skybox = {.Mesh = SkyboxMesh};
+    Scene.Skybox = Skybox;
+
     texture ContainerDiffuseMap;
     Texture_Create(&ContainerDiffuseMap, "./resources/textures/container.png",
                    GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);

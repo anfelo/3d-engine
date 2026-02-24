@@ -5,9 +5,15 @@
 #include "camera.h"
 #include "entity.h"
 
+struct skybox {
+    mesh Mesh;
+};
+
 struct scene {
     std::vector<entity> Entities;
     std::vector<light> Lights;
+
+    skybox Skybox;
 };
 
 scene Scene_Create();

@@ -22,6 +22,7 @@ struct material {
 
 void Texture_Create(texture *Tex, const char *File, GLenum TexType, GLenum Slot,
                     GLenum Format, GLenum PixelType);
+void Texture_CreateCubemap(texture *Tex, std::vector<std::string> Faces);
 void Texture_Bind(texture *Tex, GLenum Slot);
 void Texture_Uniform(GLuint ShaderID, const char *Uniform, GLuint Unit);
 void Texture_Delete(texture *Tex);
