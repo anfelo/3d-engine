@@ -650,15 +650,16 @@ void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
 }
 
 void Renderer_DrawSkybox(const renderer &Renderer, const skybox &Skybox) {
-    glDepthMask(GL_FALSE);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
     glDisable(GL_CULL_FACE);
     glUseProgram(Renderer.SkyBoxShaderProgram.ID);
 
     mesh SkyboxMesh = Skybox.Mesh;
     Mesh_Draw(Renderer.SkyBoxShaderProgram.ID, &SkyboxMesh);
 
-    glDepthMask(GL_TRUE);
     glEnable(GL_CULL_FACE);
+    glDepthFunc(GL_LESS);
 }
 
 void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
@@ -680,9 +681,6 @@ void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
     // Sets the view & projection uniforms for all the programs
     Renderer_SetCameraUniforms(Renderer, Context.Camera, Context.ScreenWidth,
                                Context.ScreenHeight);
-
-    // Skybox
-    Renderer_DrawSkybox(Renderer, Scene.Skybox);
 
     // Entities
     for (entity Entity : Scene.Entities) {
@@ -713,6 +711,9 @@ void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
     }
 
     Renderer_DrawSceneLights(Renderer, Scene, Context.Camera);
+
+    // Skybox
+    Renderer_DrawSkybox(Renderer, Scene.Skybox);
 
     // 2nd. Pass: Draw whatever is in the Framebuffer to the screen quad
     // now bind back to default framebuffer and draw a quad plane with the
