@@ -383,15 +383,20 @@ void ProcessInput(context *Context) {
 
     if (glfwGetMouseButton(Context->Window, GLFW_MOUSE_BUTTON_LEFT) ==
         GLFW_PRESS) {
+        int WindowWidth;
+        int WindowHeight;
+        glfwGetWindowSize(Context->Window, &WindowWidth, &WindowHeight);
+        float CenterX = WindowWidth / 2.0f;
+        float CenterY = WindowHeight / 2.0f;
+
         // INFO: Hide the mouse cursor on left mouse button click
         glfwSetInputMode(Context->Window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
         if (Context->FirstClick) {
             // Center the cursor and reset the last mouse position
-            glfwSetCursorPos(Context->Window, (Context->ScreenWidth / 2.0f),
-                             (Context->ScreenHeight / 2.0f));
-            Context->LastX = Context->ScreenWidth / 2.0f;
-            Context->LastY = Context->ScreenHeight / 2.0f;
+            glfwSetCursorPos(Context->Window, CenterX, CenterY);
+            Context->LastX = CenterX;
+            Context->LastY = CenterY;
             Context->FirstClick = false;
         }
 
@@ -409,10 +414,9 @@ void ProcessInput(context *Context) {
 
         // Reset the mouse position and the last mouse position
         // to calculate the next frame's delta
-        glfwSetCursorPos(Context->Window, (Context->ScreenWidth / 2.0f),
-                         (Context->ScreenHeight / 2.0f));
-        Context->LastX = Context->ScreenWidth / 2.0f;
-        Context->LastY = Context->ScreenHeight / 2.0f;
+        glfwSetCursorPos(Context->Window, CenterX, CenterY);
+        Context->LastX = CenterX;
+        Context->LastY = CenterY;
     } else if (glfwGetMouseButton(Context->Window, GLFW_MOUSE_BUTTON_LEFT) ==
                GLFW_RELEASE) {
         glfwSetInputMode(Context->Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
