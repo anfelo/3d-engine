@@ -401,6 +401,83 @@ void Renderer_ClearBackground(float R, float G, float B, float Alpha) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
+void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
+                        const context &Context) {
+
+    // 1st. Pass: Draw the scene to the framebuffer
+    // bind to framebuffer and draw scene as we normally would to color
+    // texture
+    glBindFramebuffer(GL_FRAMEBUFFER, Renderer.FrameBuffer);
+    glViewport(0, 0, Context.FramebufferWidth, Context.FramebufferHeight);
+
+    // enable depth testing (is disabled for
+    // rendering screen-space quad)
+    glEnable(GL_DEPTH_TEST);
+    // make sure we clear the framebuffer's content
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClearStencil(0);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    // Sets the view & projection uniforms for all the programs
+    Renderer_SetCameraUniforms(Renderer, Context.Camera, Context.ScreenWidth,
+                               Context.ScreenHeight);
+
+    // Entities
+    for (entity Entity : Scene.Entities) {
+        switch (Entity.Type) {
+        case entity_type::Cube:
+            Renderer_DrawCube(Renderer, Entity.Position, Entity.Rotation,
+                              Entity.Color, Entity.Material, Entity.IsSelected);
+            break;
+        case entity_type::CubeMesh:
+            Renderer_DrawCubeMesh(Renderer, Entity.Position, Entity.Rotation,
+                                  Entity.Color, Entity.Mesh, Entity.IsSelected);
+            break;
+        case entity_type::Model:
+            Renderer_DrawModel(Renderer, Entity.Position, Entity.Scale,
+                               Entity.Rotation, Entity.Color, Entity.Model,
+                               Entity.IsSelected);
+            break;
+        case entity_type::Triangle:
+            Renderer_DrawTriangle(Renderer, Entity.Position);
+            break;
+        case entity_type::Quad:
+            Renderer_DrawQuad(Renderer, Entity.Position, Entity.Material);
+            break;
+        case entity_type::QuadMesh:
+            Renderer_DrawQuadMesh(Renderer, Entity.Position, Entity.Mesh);
+            break;
+        }
+    }
+
+    Renderer_DrawSceneLights(Renderer, Scene, Context.Camera);
+
+    // Skybox
+    Renderer_DrawSkybox(Renderer, Scene.Skybox);
+
+    // 2nd. Pass: Draw whatever is in the Framebuffer to the screen quad
+    // now bind back to default framebuffer and draw a quad plane with the
+    // attached framebuffer color texture
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, Context.FramebufferWidth, Context.FramebufferHeight);
+    // disable depth test so screen-space quad
+    // isn't discarded due to depth test.
+    glDisable(GL_DEPTH_TEST);
+    // clear all relevant buffers
+    // set clear color to white (not really necessary actually,
+    // since we won't be able to see behind the quad anyways)
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glUseProgram(Renderer.ScreenShaderProgram.ID);
+    glBindVertexArray(Renderer.FrameBufferVAO);
+
+    // use the color attachment texture as
+    // the texture of the quad plane
+    glBindTexture(GL_TEXTURE_2D, Renderer.TextureColorBuffer);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
 void Renderer_DrawTriangle(const renderer &Renderer,
                            glm::vec<3, float> position) {
     glm::mat4 view = glm::mat4(1.0f);
@@ -509,7 +586,7 @@ void Renderer_DrawCube(const renderer &Renderer, glm::vec<3, float> Position,
     if (IsSelected) {
         // 2st render pass: draws the outline
         glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-        glStencilMask(0x00);
+        glStencilMask(0xFF);
         glDisable(GL_DEPTH_TEST);
 
         glUseProgram(Renderer.OutlineShaderProgram.ID);
@@ -526,7 +603,7 @@ void Renderer_DrawCube(const renderer &Renderer, glm::vec<3, float> Position,
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         glStencilMask(0xFF);
-        glStencilFunc(GL_ALWAYS, 0, 0xFF);
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
         glEnable(GL_DEPTH_TEST);
     }
 }
@@ -560,7 +637,7 @@ void Renderer_DrawCubeMesh(const renderer &Renderer,
     if (IsSelected) {
         // 2st render pass: draws the outline
         glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-        glStencilMask(0x00);
+        glStencilMask(0xFF);
         glDisable(GL_DEPTH_TEST);
 
         glUseProgram(Renderer.OutlineShaderProgram.ID);
@@ -576,7 +653,7 @@ void Renderer_DrawCubeMesh(const renderer &Renderer,
         Mesh_Draw(Renderer.OutlineShaderProgram.ID, &CubeMesh);
 
         glStencilMask(0xFF);
-        glStencilFunc(GL_ALWAYS, 0, 0xFF);
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
         glEnable(GL_DEPTH_TEST);
     }
 }
@@ -609,7 +686,7 @@ void Renderer_DrawModel(const renderer &Renderer, glm::vec<3, float> Position,
     if (IsSelected) {
         // 2st render pass: draws the outline
         glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-        glStencilMask(0x00);
+        glStencilMask(0xFF);
         glDisable(GL_DEPTH_TEST);
 
         glUseProgram(Renderer.OutlineShaderProgram.ID);
@@ -653,6 +730,8 @@ void Renderer_DrawSkybox(const renderer &Renderer, const skybox &Skybox) {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LEQUAL);
     glDisable(GL_CULL_FACE);
+    glStencilFunc(GL_EQUAL, 0, 0xFF);
+    glStencilMask(0x00);
     glUseProgram(Renderer.SkyBoxShaderProgram.ID);
 
     mesh SkyboxMesh = Skybox.Mesh;
@@ -660,82 +739,8 @@ void Renderer_DrawSkybox(const renderer &Renderer, const skybox &Skybox) {
 
     glEnable(GL_CULL_FACE);
     glDepthFunc(GL_LESS);
-}
-
-void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
-                        const context &Context) {
-
-    // 1st. Pass: Draw the scene to the framebuffer
-    // bind to framebuffer and draw scene as we normally would to color
-    // texture
-    glBindFramebuffer(GL_FRAMEBUFFER, Renderer.FrameBuffer);
-    glViewport(0, 0, Context.FramebufferWidth, Context.FramebufferHeight);
-
-    // enable depth testing (is disabled for
-    // rendering screen-space quad)
-    glEnable(GL_DEPTH_TEST);
-    // make sure we clear the framebuffer's content
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // Sets the view & projection uniforms for all the programs
-    Renderer_SetCameraUniforms(Renderer, Context.Camera, Context.ScreenWidth,
-                               Context.ScreenHeight);
-
-    // Entities
-    for (entity Entity : Scene.Entities) {
-        switch (Entity.Type) {
-        case entity_type::Cube:
-            Renderer_DrawCube(Renderer, Entity.Position, Entity.Rotation,
-                              Entity.Color, Entity.Material, Entity.IsSelected);
-            break;
-        case entity_type::CubeMesh:
-            Renderer_DrawCubeMesh(Renderer, Entity.Position, Entity.Rotation,
-                                  Entity.Color, Entity.Mesh, Entity.IsSelected);
-            break;
-        case entity_type::Model:
-            Renderer_DrawModel(Renderer, Entity.Position, Entity.Scale,
-                               Entity.Rotation, Entity.Color, Entity.Model,
-                               Entity.IsSelected);
-            break;
-        case entity_type::Triangle:
-            Renderer_DrawTriangle(Renderer, Entity.Position);
-            break;
-        case entity_type::Quad:
-            Renderer_DrawQuad(Renderer, Entity.Position, Entity.Material);
-            break;
-        case entity_type::QuadMesh:
-            Renderer_DrawQuadMesh(Renderer, Entity.Position, Entity.Mesh);
-            break;
-        }
-    }
-
-    Renderer_DrawSceneLights(Renderer, Scene, Context.Camera);
-
-    // Skybox
-    Renderer_DrawSkybox(Renderer, Scene.Skybox);
-
-    // 2nd. Pass: Draw whatever is in the Framebuffer to the screen quad
-    // now bind back to default framebuffer and draw a quad plane with the
-    // attached framebuffer color texture
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, Context.FramebufferWidth, Context.FramebufferHeight);
-    // disable depth test so screen-space quad
-    // isn't discarded due to depth test.
-    glDisable(GL_DEPTH_TEST);
-    // clear all relevant buffers
-    // set clear color to white (not really necessary actually,
-    // since we won't be able to see behind the quad anyways)
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glUseProgram(Renderer.ScreenShaderProgram.ID);
-    glBindVertexArray(Renderer.FrameBufferVAO);
-
-    // use the color attachment texture as
-    // the texture of the quad plane
-    glBindTexture(GL_TEXTURE_2D, Renderer.TextureColorBuffer);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glStencilMask(0xFF);
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
 }
 
 void Renderer_DrawSceneLights(const renderer &Renderer, const scene &Scene,
