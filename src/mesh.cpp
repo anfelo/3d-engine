@@ -112,6 +112,56 @@ void Mesh_Draw(GLuint ShaderID, mesh *Mesh) {
     glActiveTexture(GL_TEXTURE0);
 }
 
+void Mesh_DrawInstance(GLuint ShaderID, mesh *Mesh, unsigned int InstancesNum) {
+    // bind appropriate textures
+    unsigned int DiffuseNr = 1;
+    unsigned int SpecularNr = 1;
+    unsigned int NormalNr = 1;
+    unsigned int HeightNr = 1;
+
+    glUniform1i(glGetUniformLocation(ShaderID, "u_material.has_specular"), 0);
+    glUniform1i(glGetUniformLocation(ShaderID, "u_material.has_normal"), 0);
+
+    for (unsigned int i = 0; i < Mesh->Textures.size(); i++) {
+        // active proper texture unit before binding
+        glActiveTexture(GL_TEXTURE0 + i);
+        // retrieve texture number (the N in diffuse_textureN)
+        std::string Number;
+        std::string Name = Mesh->Textures[i].Name;
+        if (Name == "diffuse") {
+            Number = std::to_string(DiffuseNr++);
+        } else if (Name == "specular") {
+            // transfer unsigned int to string
+            Number = std::to_string(SpecularNr++);
+            glUniform1i(
+                glGetUniformLocation(ShaderID, "u_material.has_specular"), 1);
+        } else if (Name == "normal") {
+            // transfer unsigned int to string
+            Number = std::to_string(NormalNr++);
+            glUniform1i(glGetUniformLocation(ShaderID, "u_material.has_normal"),
+                        1);
+        } else if (Name == "height") {
+            // transfer unsigned int to string
+            Number = std::to_string(HeightNr++);
+        }
+        // now set the sampler to the correct texture unit
+        glUniform1i(
+            glGetUniformLocation(ShaderID, ("u_material." + Name).c_str()), i);
+        // and finally bind the texture
+        glBindTexture(Mesh->Textures[i].Type, Mesh->Textures[i].ID);
+    }
+
+    // draw mesh
+    glBindVertexArray(Mesh->VAO);
+    glDrawElementsInstanced(GL_TRIANGLES,
+                            static_cast<unsigned int>(Mesh->Indices.size()),
+                            GL_UNSIGNED_INT, 0, InstancesNum);
+    glBindVertexArray(0);
+
+    // always good practice to set everything back to defaults once configured.
+    glActiveTexture(GL_TEXTURE0);
+}
+
 void Mesh_CreateCube(mesh *Mesh, std::vector<texture> Textures) {
     std::vector<vertex> Vertices = {
         {glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(0.0f, 0.0f, -1.0f),

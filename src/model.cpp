@@ -36,6 +36,13 @@ void Model_Draw(GLuint ShaderID, model *Model) {
     }
 }
 
+void Model_DrawInstances(GLuint ShaderID, model *Model,
+                         unsigned int InstancesNum) {
+    for (unsigned int i = 0; i < Model->Meshes.size(); i++) {
+        Mesh_DrawInstance(ShaderID, &Model->Meshes[i], InstancesNum);
+    }
+}
+
 void Model_ProcessNode(model *Model, aiNode *Node, const aiScene *Scene) {
     // process all the node's meshes (if any)
     for (unsigned int i = 0; i < Node->mNumMeshes; i++) {

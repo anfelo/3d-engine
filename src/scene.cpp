@@ -14,6 +14,10 @@ void Scene_AddEntity(scene &Scene, entity &Entity) {
     Scene.Entities.push_back(Entity);
 }
 
+void Scene_AddInstance(scene &Scene, entity &Entity) {
+    Scene.Instances.push_back(Entity);
+}
+
 void Scene_AddLight(scene &Scene, light &Light) {
     Scene.Lights.push_back(Light);
 }

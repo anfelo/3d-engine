@@ -13,12 +13,15 @@ struct scene {
     std::vector<entity> Entities;
     std::vector<light> Lights;
 
+    std::vector<entity> Instances;
+
     skybox Skybox;
 };
 
 scene Scene_Create();
 void Scene_Destroy(scene &Scene);
 void Scene_AddEntity(scene &Scene, entity &Entity);
+void Scene_AddInstance(scene &Scene, entity &Entity);
 void Scene_AddLight(scene &Scene, light &Light);
 
 #endif

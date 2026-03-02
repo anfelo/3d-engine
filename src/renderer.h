@@ -108,6 +108,7 @@ struct renderer {
     shader_program QuadShaderProgram;
     shader_program ScreenShaderProgram;
     shader_program SkyBoxShaderProgram;
+    shader_program InstanceShaderProgram;
 
     // Framebuffer stuff
     GLuint FrameBufferVAO, FrameBufferVBO;
@@ -146,7 +147,8 @@ void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
 void Renderer_DrawSkybox(const renderer &Renderer, const skybox &Skybox);
 void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
                         const context &Context);
-void Renderer_DrawSceneLights(const renderer &Renderer, const scene &Scene,
+void Renderer_DrawSceneLights(const renderer &Renderer,
+                              shader_program ShaderProgram, const scene &Scene,
                               const camera &Camera);
 void Renderer_ClearBackground(float R, float G, float B, float Alpha);
 void Renderer_SetCameraUniforms(const renderer &Renderer, const camera &Camera,

@@ -61,6 +61,9 @@ renderer Renderer_Create(int ScreenWidth, int ScreenHeight) {
                                      "./resources/shaders/framebuffer.frag");
     Renderer.SkyBoxShaderProgram = Renderer_CreateShaderProgram(
         "./resources/shaders/cubemap.vert", "./resources/shaders/cubemap.frag");
+    Renderer.InstanceShaderProgram =
+        Renderer_CreateShaderProgram("./resources/shaders/instance.vert",
+                                     "./resources/shaders/default.frag");
 
     // ### Triangle ###
     glGenBuffers(1, &TriangleMesh.VBO);
@@ -205,6 +208,7 @@ void Renderer_Destroy(renderer &Renderer) {
     glDeleteProgram(Renderer.OutlineShaderProgram.ID);
     glDeleteProgram(Renderer.QuadShaderProgram.ID);
     glDeleteProgram(Renderer.ScreenShaderProgram.ID);
+    glDeleteProgram(Renderer.InstanceShaderProgram.ID);
 
     glDeleteFramebuffers(1, &Renderer.FrameBuffer);
     glDeleteTextures(1, &Renderer.TextureColorBuffer);
@@ -449,8 +453,16 @@ void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
             break;
         }
     }
+    Renderer_DrawSceneLights(Renderer, Renderer.ShaderProgram, Scene,
+                             Context.Camera);
 
-    Renderer_DrawSceneLights(Renderer, Scene, Context.Camera);
+    glUseProgram(Renderer.InstanceShaderProgram.ID);
+    model Model = Scene.Instances[0].Model;
+    Model_DrawInstances(Renderer.InstanceShaderProgram.ID, &Model,
+                        Scene.Instances.size());
+
+    Renderer_DrawSceneLights(Renderer, Renderer.InstanceShaderProgram, Scene,
+                             Context.Camera);
 
     // Skybox
     Renderer_DrawSkybox(Renderer, Scene.Skybox);
@@ -743,11 +755,11 @@ void Renderer_DrawSkybox(const renderer &Renderer, const skybox &Skybox) {
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
 }
 
-void Renderer_DrawSceneLights(const renderer &Renderer, const scene &Scene,
+void Renderer_DrawSceneLights(const renderer &Renderer,
+                              shader_program ShaderProgram, const scene &Scene,
                               const camera &Camera) {
-    glUseProgram(Renderer.ShaderProgram.ID);
-    glUniform1f(Renderer.ShaderProgram.Uniforms.Material.ShininessUniformLoc,
-                32.0f);
+    glUseProgram(ShaderProgram.ID);
+    glUniform1f(ShaderProgram.Uniforms.Material.ShininessUniformLoc, 32.0f);
 
     // Lights
     for (size_t i = 0; i < Scene.Lights.size(); i++) {
@@ -761,18 +773,17 @@ void Renderer_DrawSceneLights(const renderer &Renderer, const scene &Scene,
             glm::vec3 DirectionalLightDiffuse = glm::vec3(0.4f, 0.4f, 0.4f);
             glm::vec3 DirectionalLightSpecular = glm::vec3(0.5f, 0.5f, 0.5f);
 
+            glUniform3fv(ShaderProgram.Uniforms.DirectionalLight.DirUniformLoc,
+                         1, glm::value_ptr(DirectionalLightDir));
             glUniform3fv(
-                Renderer.ShaderProgram.Uniforms.DirectionalLight.DirUniformLoc,
-                1, glm::value_ptr(DirectionalLightDir));
-            glUniform3fv(Renderer.ShaderProgram.Uniforms.DirectionalLight
-                             .AmbientUniformLoc,
-                         1, glm::value_ptr(DirectionalLightAmbient));
-            glUniform3fv(Renderer.ShaderProgram.Uniforms.DirectionalLight
-                             .DiffuseUniformLoc,
-                         1, glm::value_ptr(DirectionalLightDiffuse));
-            glUniform3fv(Renderer.ShaderProgram.Uniforms.DirectionalLight
-                             .SpecularUniformLoc,
-                         1, glm::value_ptr(DirectionalLightSpecular));
+                ShaderProgram.Uniforms.DirectionalLight.AmbientUniformLoc, 1,
+                glm::value_ptr(DirectionalLightAmbient));
+            glUniform3fv(
+                ShaderProgram.Uniforms.DirectionalLight.DiffuseUniformLoc, 1,
+                glm::value_ptr(DirectionalLightDiffuse));
+            glUniform3fv(
+                ShaderProgram.Uniforms.DirectionalLight.SpecularUniformLoc, 1,
+                glm::value_ptr(DirectionalLightSpecular));
             break;
         }
         case light_type::Point: {
@@ -781,73 +792,62 @@ void Renderer_DrawSceneLights(const renderer &Renderer, const scene &Scene,
                 Scene.Lights[i].Entity.Color.b);
             glm::vec3 PointLightDiffuse = glm::vec3(0.8f, 0.8f, 0.8f);
             glm::vec3 PointLightSpecular = glm::vec3(1.0f, 1.0f, 1.0f);
-            glUniform3fv(Renderer.ShaderProgram.Uniforms.PointLights[i]
-                             .PositionUniformLoc,
-                         1, glm::value_ptr(Scene.Lights[0].Entity.Position));
-            glUniform3fv(Renderer.ShaderProgram.Uniforms.PointLights[i]
-                             .AmbientUniformLoc,
-                         1, glm::value_ptr(PointLightAmbient));
-            glUniform3fv(Renderer.ShaderProgram.Uniforms.PointLights[i]
-                             .DiffuseUniformLoc,
-                         1, glm::value_ptr(PointLightDiffuse));
-            glUniform3fv(Renderer.ShaderProgram.Uniforms.PointLights[i]
-                             .SpecularUniformLoc,
-                         1, glm::value_ptr(PointLightSpecular));
+            glUniform3fv(
+                ShaderProgram.Uniforms.PointLights[i].PositionUniformLoc, 1,
+                glm::value_ptr(Scene.Lights[0].Entity.Position));
+            glUniform3fv(
+                ShaderProgram.Uniforms.PointLights[i].AmbientUniformLoc, 1,
+                glm::value_ptr(PointLightAmbient));
+            glUniform3fv(
+                ShaderProgram.Uniforms.PointLights[i].DiffuseUniformLoc, 1,
+                glm::value_ptr(PointLightDiffuse));
+            glUniform3fv(
+                ShaderProgram.Uniforms.PointLights[i].SpecularUniformLoc, 1,
+                glm::value_ptr(PointLightSpecular));
 
             float Constant = 1.0f;
             float Linear = 0.09f;
             float Quadratic = 0.032f;
-            glUniform1f(Renderer.ShaderProgram.Uniforms.PointLights[i]
-                            .ConstantUniformLoc,
-                        Constant);
             glUniform1f(
-                Renderer.ShaderProgram.Uniforms.PointLights[i].LinearUniformLoc,
-                Linear);
-            glUniform1f(Renderer.ShaderProgram.Uniforms.PointLights[i]
-                            .QuadraticUniformLoc,
-                        Quadratic);
+                ShaderProgram.Uniforms.PointLights[i].ConstantUniformLoc,
+                Constant);
+            glUniform1f(ShaderProgram.Uniforms.PointLights[i].LinearUniformLoc,
+                        Linear);
+            glUniform1f(
+                ShaderProgram.Uniforms.PointLights[i].QuadraticUniformLoc,
+                Quadratic);
             break;
         }
         case light_type::Spot: {
             glm::vec3 SpotLightAmbient = glm::vec3(0.0f, 0.0f, 0.0f);
             glm::vec3 SpotLightDiffuse = glm::vec3(1.0f, 1.0f, 1.0f);
             glm::vec3 SpotLightSpecular = glm::vec3(1.0f, 1.0f, 1.0f);
-            glUniform3fv(
-                Renderer.ShaderProgram.Uniforms.SpotLight.PositionUniformLoc, 1,
-                glm::value_ptr(Camera.Position));
-            glUniform3fv(
-                Renderer.ShaderProgram.Uniforms.SpotLight.DirectionUniformLoc,
-                1, glm::value_ptr(Camera.Front));
-            glUniform3fv(
-                Renderer.ShaderProgram.Uniforms.SpotLight.AmbientUniformLoc, 1,
-                glm::value_ptr(SpotLightAmbient));
-            glUniform3fv(
-                Renderer.ShaderProgram.Uniforms.SpotLight.DiffuseUniformLoc, 1,
-                glm::value_ptr(SpotLightDiffuse));
-            glUniform3fv(
-                Renderer.ShaderProgram.Uniforms.SpotLight.SpecularUniformLoc, 1,
-                glm::value_ptr(SpotLightSpecular));
+            glUniform3fv(ShaderProgram.Uniforms.SpotLight.PositionUniformLoc, 1,
+                         glm::value_ptr(Camera.Position));
+            glUniform3fv(ShaderProgram.Uniforms.SpotLight.DirectionUniformLoc,
+                         1, glm::value_ptr(Camera.Front));
+            glUniform3fv(ShaderProgram.Uniforms.SpotLight.AmbientUniformLoc, 1,
+                         glm::value_ptr(SpotLightAmbient));
+            glUniform3fv(ShaderProgram.Uniforms.SpotLight.DiffuseUniformLoc, 1,
+                         glm::value_ptr(SpotLightDiffuse));
+            glUniform3fv(ShaderProgram.Uniforms.SpotLight.SpecularUniformLoc, 1,
+                         glm::value_ptr(SpotLightSpecular));
 
             float Constant = 1.0f;
             float Linear = 0.09f;
             float Quadratic = 0.032f;
             float CutOff = glm::cos(glm::radians(12.5f));
             float OuterCutOff = glm::cos(glm::radians(15.0f));
-            glUniform1f(
-                Renderer.ShaderProgram.Uniforms.SpotLight.ConstantUniformLoc,
-                Constant);
-            glUniform1f(
-                Renderer.ShaderProgram.Uniforms.SpotLight.LinearUniformLoc,
-                Linear);
-            glUniform1f(
-                Renderer.ShaderProgram.Uniforms.SpotLight.QuadraticUniformLoc,
-                Quadratic);
-            glUniform1f(
-                Renderer.ShaderProgram.Uniforms.SpotLight.CutOffUniformLoc,
-                CutOff);
-            glUniform1f(
-                Renderer.ShaderProgram.Uniforms.SpotLight.OuterCutOffUniformLoc,
-                OuterCutOff);
+            glUniform1f(ShaderProgram.Uniforms.SpotLight.ConstantUniformLoc,
+                        Constant);
+            glUniform1f(ShaderProgram.Uniforms.SpotLight.LinearUniformLoc,
+                        Linear);
+            glUniform1f(ShaderProgram.Uniforms.SpotLight.QuadraticUniformLoc,
+                        Quadratic);
+            glUniform1f(ShaderProgram.Uniforms.SpotLight.CutOffUniformLoc,
+                        CutOff);
+            glUniform1f(ShaderProgram.Uniforms.SpotLight.OuterCutOffUniformLoc,
+                        OuterCutOff);
             break;
         }
         }
@@ -892,6 +892,17 @@ void Renderer_SetCameraUniforms(const renderer &Renderer, const camera &Camera,
 
     glUniform3fv(Renderer.QuadShaderProgram.Uniforms.ViewPositionUniformLoc, 1,
                  glm::value_ptr(Camera.Position));
+
+    // Set view & projection for instance shader
+    glUseProgram(Renderer.InstanceShaderProgram.ID);
+    glUniformMatrix4fv(Renderer.InstanceShaderProgram.Uniforms.ViewUniformLoc,
+                       1, GL_FALSE, glm::value_ptr(View));
+    glUniformMatrix4fv(
+        Renderer.InstanceShaderProgram.Uniforms.ProjectionUniformLoc, 1,
+        GL_FALSE, glm::value_ptr(Projection));
+
+    glUniform3fv(Renderer.InstanceShaderProgram.Uniforms.ViewPositionUniformLoc,
+                 1, glm::value_ptr(Camera.Position));
 
     // Set view & projection for skybox shader
     View = glm::mat4(glm::mat3(View));

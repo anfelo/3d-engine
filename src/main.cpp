@@ -168,6 +168,110 @@ int main() {
 
     Scene_AddEntity(Scene, Backpack);
 
+    model AsteroidModel;
+    Model_Create(&AsteroidModel, "./resources/models/rock/rock.obj", false);
+
+    entity Asteroid = {
+        .Type = entity_type::Model,
+        .Position = glm::vec3(6.0f, 0.0f, 0.0f),
+        .Scale = glm::vec3(0.4f),
+        .Rotation = glm::vec4(0.0f, 1.0f, 0.3f, 0.5f),
+        .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
+        .IsSelected = false,
+        .Model = AsteroidModel,
+    };
+
+    Scene_AddEntity(Scene, Asteroid);
+
+    unsigned int AsteroidsNum = 1000;
+    glm::mat4 *ModelMatrices;
+    ModelMatrices = new glm::mat4[AsteroidsNum];
+    srand(glfwGetTime());
+    float Radius = 50.0;
+    float Offset = 2.5f;
+
+    for (unsigned int i = 0; i < AsteroidsNum; i++) {
+        // 1. translation: displace along circle with 'radius' in range
+        // [-offset, offset]
+        float Angle = (float)i / (float)AsteroidsNum * 360.0f;
+        float Displacement =
+            (rand() % (int)(2 * Offset * 100)) / 100.0f - Offset;
+        float X = sin(Angle) * Radius + Displacement;
+        Displacement = (rand() % (int)(2 * Offset * 100)) / 100.0f - Offset;
+        float Y =
+            Displacement *
+            0.4f; // keep height of field smaller compared to width of x and z
+        Displacement = (rand() % (int)(2 * Offset * 100)) / 100.0f - Offset;
+        float Z = cos(Angle) * Radius + Displacement;
+
+        glm::vec3 Position = glm::vec3(X, Y, Z);
+
+        // 2. scale: scale between 0.05 and 0.25f
+        glm::vec3 Scale = glm::vec3((rand() % 20) / 100.0f + 0.05);
+
+        // 3. rotation: add random rotation around a (semi)randomly picked
+        // rotation axis vector
+        float RotationAngle = (rand() % 360);
+        glm::vec4 Rotation =
+            glm::vec4(RotationAngle, glm::vec3(0.4f, 0.6f, 0.8f));
+
+        // 4. Add asteroids to the scene
+        entity Asteroid = {
+            .Type = entity_type::Model,
+            .Position = Position,
+            .Scale = Scale,
+            .Rotation = Rotation,
+            .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
+            .IsSelected = false,
+            .Model = AsteroidModel,
+        };
+
+        glm::mat4 Model = glm::mat4(1.0f);
+        Model = glm::translate(Model, Position);
+        Model = glm::scale(Model, Scale);
+
+        glm::vec3 RotationVec =
+            glm::vec3(Rotation[1], Rotation[2], Rotation[3]);
+        Model = glm::rotate(Model, glm::radians(Rotation[0]), RotationVec);
+
+        ModelMatrices[i] = Model;
+
+        Scene_AddInstance(Scene, Asteroid);
+    }
+
+    // configure instanced array
+    // -------------------------
+    unsigned int InstancedBuffer;
+    glGenBuffers(1, &InstancedBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, InstancedBuffer);
+    glBufferData(GL_ARRAY_BUFFER, AsteroidsNum * sizeof(glm::mat4),
+                 &ModelMatrices[0], GL_STATIC_DRAW);
+
+    for (unsigned int i = 0; i < AsteroidModel.Meshes.size(); i++) {
+        unsigned int VAO = AsteroidModel.Meshes[i].VAO;
+        glBindVertexArray(VAO);
+        // set attribute pointers for matrix (4 times vec4)
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                              (void *)0);
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                              (void *)(sizeof(glm::vec4)));
+        glEnableVertexAttribArray(5);
+        glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                              (void *)(2 * sizeof(glm::vec4)));
+        glEnableVertexAttribArray(6);
+        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                              (void *)(3 * sizeof(glm::vec4)));
+
+        glVertexAttribDivisor(3, 1);
+        glVertexAttribDivisor(4, 1);
+        glVertexAttribDivisor(5, 1);
+        glVertexAttribDivisor(6, 1);
+
+        glBindVertexArray(0);
+    }
+
     texture GrassTexture;
     Texture_Create(&GrassTexture, "./resources/textures/grass.png",
                    GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);

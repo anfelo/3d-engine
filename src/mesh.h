@@ -35,5 +35,6 @@ void Mesh_CreateCube(mesh *Mesh, std::vector<texture> Textures);
 void Mesh_CreateQuad(mesh *Mesh, std::vector<texture> Textures);
 void Mesh_Setup(mesh *Mesh);
 void Mesh_Draw(GLuint ShaderID, mesh *Mesh);
+void Mesh_DrawInstance(GLuint ShaderID, mesh *Mesh, unsigned int InstancesNum);
 
 #endif
