@@ -12,8 +12,9 @@ struct skybox {
 struct scene {
     std::vector<entity> Entities;
     std::vector<light> Lights;
-
     std::vector<entity> Instances;
+
+    int Effect;
 
     skybox Skybox;
 };

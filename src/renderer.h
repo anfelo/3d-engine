@@ -88,6 +88,7 @@ struct uniform_locators {
     GLuint SpecularStrengthUniformLoc;
 
     GLuint ScreenTextureUniformLoc;
+    GLuint EffectUniformLoc;
 
     material_uniforms Material;
 

@@ -396,6 +396,8 @@ shader_program Renderer_CreateShaderProgram(const char *VertexFile,
     // ScreenTexture
     ShaderProgram.Uniforms.ScreenTextureUniformLoc =
         glGetUniformLocation(ShaderProgram.ID, "u_screen_texture");
+    ShaderProgram.Uniforms.EffectUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_effect");
 
     return ShaderProgram;
 }
@@ -483,6 +485,9 @@ void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
 
     glUseProgram(Renderer.ScreenShaderProgram.ID);
     glBindVertexArray(Renderer.FrameBufferVAO);
+
+    glUniform1iv(Renderer.ScreenShaderProgram.Uniforms.EffectUniformLoc, 1,
+                 &Scene.Effect);
 
     // use the color attachment texture as
     // the texture of the quad plane

@@ -44,6 +44,14 @@ void Gui_Draw(scene &Scene) {
     }
     ImGui::End();
 
+    // Post-Processing
+    const char *effects[] = {"None",           "Inversion", "Grayscale",
+                             "Kernel Effects", "Blur",      "Edges"};
+    ImGui::Begin("Post-Processing");
+    ImGui::Text("Framebuffer Effects");
+    ImGui::Combo("##effects", &Scene.Effect, effects, IM_ARRAYSIZE(effects));
+    ImGui::End();
+
     // Light Properties
     // ImGui::Begin("Light Properties");
     // for (size_t i = 0; i < Scene.Lights.size(); i++) {
