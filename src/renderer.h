@@ -41,6 +41,8 @@ struct directional_light {
     GLuint AmbientUniformLoc;
     GLuint DiffuseUniformLoc;
     GLuint SpecularUniformLoc;
+    GLuint EnabledUniformLoc;
+    GLuint UseBlinnUniformLoc;
 };
 
 struct point_light {
@@ -51,6 +53,8 @@ struct point_light {
     GLuint ConstantUniformLoc;
     GLuint LinearUniformLoc;
     GLuint QuadraticUniformLoc;
+    GLuint EnabledUniformLoc;
+    GLuint UseBlinnUniformLoc;
 };
 
 struct spot_light {
@@ -64,6 +68,8 @@ struct spot_light {
     GLuint QuadraticUniformLoc;
     GLuint CutOffUniformLoc;
     GLuint OuterCutOffUniformLoc;
+    GLuint EnabledUniformLoc;
+    GLuint UseBlinnUniformLoc;
 };
 
 struct material_uniforms {
@@ -90,6 +96,9 @@ struct uniform_locators {
     GLuint ScreenTextureUniformLoc;
     GLuint EffectUniformLoc;
 
+    GLuint LightSpaceMatrixUniformLoc;
+    GLuint ShadowMapUniformLoc;
+
     material_uniforms Material;
 
     directional_light DirectionalLight;
@@ -110,47 +119,66 @@ struct renderer {
     shader_program ScreenShaderProgram;
     shader_program SkyBoxShaderProgram;
     shader_program InstanceShaderProgram;
+    shader_program LightCubeShaderProgram;
+    shader_program SimpleDepthShaderProgram;
 
     // Framebuffer stuff
     GLuint FrameBufferVAO, FrameBufferVBO;
     GLuint FrameBuffer;
     GLuint TextureColorBuffer;
     GLuint RBO; // render buffer object
+
+    // Depth Map stuff
+    GLuint DepthMapFBO;
+    GLuint DepthMapBuffer;
 };
 
-renderer Renderer_Create(int ScreenWidth, int ScreenHeight);
+renderer Renderer_Create(const context &Context);
 void Renderer_Destroy(renderer &Renderer);
 void Renderer_ResizeFramebuffer(const renderer &Renderer, int ScreenWidth,
                                 int ScreenHeight);
 shader_program Renderer_CreateShaderProgram(const char *VertexFile,
                                             const char *FragmentFile);
+void Renderer_Draw(const renderer &Renderer, const scene &Scene,
+                   const context &Context);
+void Renderer_DrawScene(const renderer &Renderer,
+                        const shader_program &ShaderProgram,
+                        const scene &Scene);
 void Renderer_DrawTriangle(const renderer &Renderer,
+                           const shader_program &ShaderProgram,
                            glm::vec<3, float> position);
-void Renderer_DrawQuad(const renderer &Renderer, glm::vec<3, float> Position,
-                       material Material);
+void Renderer_DrawQuad(const renderer &Renderer,
+                       const shader_program &ShaderProgram,
+                       glm::vec<3, float> Position, material Material);
 void Renderer_DrawQuadMesh(const renderer &Renderer,
-                           glm::vec<3, float> Position, mesh Mesh);
-void Renderer_DrawCube(const renderer &Renderer, glm::vec<3, float> Position,
-                       glm::vec<4, float> Rotation, glm::vec<4, float> Color,
-                       material Material, bool IsSelected);
-void Renderer_DrawCubeMesh(const renderer &Renderer,
+                           const shader_program &ShaderProgram,
                            glm::vec<3, float> Position,
+                           glm::vec<3, float> Scale,
+                           glm::vec<4, float> Rotation, mesh Mesh);
+void Renderer_DrawCube(const renderer &Renderer,
+                       const shader_program &ShaderProgram,
+                       glm::vec<3, float> Position, glm::vec<4, float> Rotation,
+                       glm::vec<4, float> Color, material Material,
+                       bool IsSelected);
+void Renderer_DrawCubeMesh(const renderer &Renderer,
+                           const shader_program &ShaderProgram,
+                           glm::vec<3, float> Position,
+                           glm::vec<3, float> Scale,
                            glm::vec<4, float> Rotation,
                            glm::vec<4, float> Color, mesh CubeMesh,
                            bool IsSelected);
-void Renderer_DrawModel(const renderer &Renderer, glm::vec<3, float> Position,
-                        glm::vec<3, float> Scale, glm::vec<4, float> Rotation,
-                        glm::vec<4, float> Color, model EntityModel,
-                        bool IsSelected);
+void Renderer_DrawModel(const renderer &Renderer,
+                        const shader_program &ShaderProgram,
+                        glm::vec<3, float> Position, glm::vec<3, float> Scale,
+                        glm::vec<4, float> Rotation, glm::vec<4, float> Color,
+                        model EntityModel, bool IsSelected);
 void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
                         glm::vec<4, float> Color, float AmbientStrength,
                         float SpecularStrength);
 void Renderer_DrawSkybox(const renderer &Renderer, const skybox &Skybox);
-void Renderer_DrawScene(const renderer &Renderer, const scene &Scene,
-                        const context &Context);
-void Renderer_DrawSceneLights(const renderer &Renderer,
-                              shader_program ShaderProgram, const scene &Scene,
-                              const camera &Camera);
+void Renderer_SetSceneLightsUniforms(const renderer &Renderer,
+                                     const shader_program &ShaderProgram,
+                                     const scene &Scene, const camera &Camera);
 void Renderer_ClearBackground(float R, float G, float B, float Alpha);
 void Renderer_SetCameraUniforms(const renderer &Renderer, const camera &Camera,
                                 float ScreenWidth, float ScreenHeight);

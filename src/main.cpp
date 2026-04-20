@@ -11,6 +11,7 @@
 #include "model.h"
 #include "renderer.h"
 #include "scene.h"
+#include "texture.h"
 
 void FramebufferSizeCallback(GLFWwindow *Window, int Width, int Height);
 void MouseScrollCallback(GLFWwindow *Window, double OffsetX, double OffsetY);
@@ -20,7 +21,7 @@ void ProcessInput(context *Context);
 const unsigned int SCREEN_WIDTH = 1200;
 const unsigned int SCREEN_HEIGHT = 800;
 
-context Context;
+context Context = {0};
 
 int main() {
     // glfw: initialize and configure
@@ -44,7 +45,10 @@ int main() {
         .ScreenHeight = SCREEN_HEIGHT,
         .FramebufferWidth = SCREEN_WIDTH,
         .FramebufferHeight = SCREEN_HEIGHT,
+        .ShadowbufferWidth = 1024,
+        .ShadowbufferHeight = 1024,
         .DeltaTime = 0.0f,
+        .CurrentSceneIdx = 1,
     };
 
     if (Context.Window == NULL) {
@@ -70,13 +74,16 @@ int main() {
     glViewport(0, 0, Context.FramebufferWidth, Context.FramebufferHeight);
 
     gui Gui = Gui_Create(Context);
-    renderer Renderer =
-        Renderer_Create(Context.ScreenWidth, Context.ScreenHeight);
+    renderer Renderer = Renderer_Create(Context);
     camera Camera = Camera_Create(glm::vec3(0.0f, 0.0f, 3.0f),
                                   glm::vec3(0.0f, 1.0f, 0.0f), YAW, PITCH);
     Context.Camera = Camera;
 
-    scene Scene = Scene_Create();
+    scene Scene1 = Scene_Create();
+    scene Scene2 = Scene_Create();
+
+    Context.Scenes.push_back(&Scene1);
+    Context.Scenes.push_back(&Scene2);
 
     texture SkyboxCubemap;
     std::vector<std::string> SkyboxFaces{
@@ -91,10 +98,49 @@ int main() {
     std::vector<texture> SkyboxTextures = {SkyboxCubemap};
 
     mesh SkyboxMesh;
-    Mesh_CreateCube(&SkyboxMesh, SkyboxTextures);
+    Mesh_CreateCube(&SkyboxMesh, SkyboxTextures, 10.0f);
 
     skybox Skybox = {.Mesh = SkyboxMesh};
-    Scene.Skybox = Skybox;
+    Scene1.Skybox = Skybox;
+
+    texture SkyboxCubemap2;
+    std::vector<std::string> SkyboxFaces2{
+        "./resources/textures/night_skybox/right.png",
+        "./resources/textures/night_skybox/left.png",
+        "./resources/textures/night_skybox/top.png",
+        "./resources/textures/night_skybox/bottom.png",
+        "./resources/textures/night_skybox/front.png",
+        "./resources/textures/night_skybox/back.png",
+    };
+    Texture_CreateCubemap(&SkyboxCubemap2, SkyboxFaces2);
+    std::vector<texture> SkyboxTextures2 = {SkyboxCubemap2};
+
+    mesh SkyboxMesh2;
+    Mesh_CreateCube(&SkyboxMesh2, SkyboxTextures2, 10.0f);
+    skybox Skybox2 = {.Mesh = SkyboxMesh2};
+    Scene2.Skybox = Skybox2;
+
+    texture FloorTexture;
+    Texture_Create(&FloorTexture, "./resources/textures/wood.png",
+                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+    FloorTexture.Name = "diffuse";
+    FloorTexture.Repeat = glm::vec2(10.0);
+    std::vector<texture> FloorTextures = {FloorTexture};
+
+    mesh FloorMesh;
+    Mesh_CreateQuad(&FloorMesh, FloorTextures, 16.0f);
+
+    entity Floor = {
+        .Type = entity_type::QuadMesh,
+        .Position = glm::vec3(0.0f, -1.0f, 0.0f),
+        .Scale = glm::vec3(5.0f),
+        .Rotation = glm::vec4(-90.0f, 1.0f, 0.0f, 0.0f),
+        .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
+        .IsSelected = false,
+        .Mesh = FloorMesh,
+    };
+
+    Scene_AddEntity(Scene2, Floor);
 
     texture ContainerDiffuseMap;
     Texture_Create(&ContainerDiffuseMap, "./resources/textures/container.png",
@@ -110,19 +156,41 @@ int main() {
                                               ContainerSpecularMap};
 
     mesh ContainerMesh;
-    Mesh_CreateCube(&ContainerMesh, ContainerTextures);
+    Mesh_CreateCube(&ContainerMesh, ContainerTextures, 10.0f);
 
     entity Container = {
         .Type = entity_type::CubeMesh,
         .Position = glm::vec3(0.0f, 0.0f, 0.0f),
-        .Scale = glm::vec3(0.0f),
+        .Scale = glm::vec3(1.0f),
         .Rotation = glm::vec4(0.0f, 1.0f, 0.3f, 0.5f),
         .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
         .IsSelected = false,
         .Mesh = ContainerMesh,
     };
 
-    Scene_AddEntity(Scene, Container);
+    Scene_AddEntity(Scene1, Container);
+
+    entity Container2 = {
+        .Type = entity_type::CubeMesh,
+        .Position = glm::vec3(-0.3f, 0.0f, 0.4f),
+        .Scale = glm::vec3(0.4f),
+        .Rotation = glm::vec4(60.0f, 1.0f, 0.3f, 0.5f),
+        .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
+        .IsSelected = false,
+        .Mesh = ContainerMesh,
+    };
+    entity Container3 = {
+        .Type = entity_type::CubeMesh,
+        .Position = glm::vec3(1.0f, -0.8f, 1.0f),
+        .Scale = glm::vec3(0.4f),
+        .Rotation = glm::vec4(0.0f, 1.0f, 0.3f, 0.5f),
+        .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
+        .IsSelected = false,
+        .Mesh = ContainerMesh,
+    };
+
+    Scene_AddEntity(Scene2, Container2);
+    Scene_AddEntity(Scene2, Container3);
 
     texture RockDiffuseMap;
     Texture_Create(&RockDiffuseMap,
@@ -143,14 +211,14 @@ int main() {
     entity Rock = {
         .Type = entity_type::CubeMesh,
         .Position = glm::vec3(2.0f, 0.0f, 0.0f),
-        .Scale = glm::vec3(0.0f),
+        .Scale = glm::vec3(1.0f),
         .Rotation = glm::vec4(0.0f, 1.0f, 0.3f, 0.5f),
         .Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f),
         .IsSelected = false,
         .Mesh = RockMesh,
     };
 
-    Scene_AddEntity(Scene, Rock);
+    Scene_AddEntity(Scene1, Rock);
 
     model BackpackModel;
     Model_Create(&BackpackModel, "./resources/models/backpack/backpack.obj",
@@ -166,7 +234,7 @@ int main() {
         .Model = BackpackModel,
     };
 
-    Scene_AddEntity(Scene, Backpack);
+    Scene_AddEntity(Scene1, Backpack);
 
     model AsteroidModel;
     Model_Create(&AsteroidModel, "./resources/models/rock/rock.obj", false);
@@ -181,7 +249,7 @@ int main() {
         .Model = AsteroidModel,
     };
 
-    Scene_AddEntity(Scene, Asteroid);
+    Scene_AddEntity(Scene1, Asteroid);
 
     unsigned int AsteroidsNum = 1000;
     glm::mat4 *ModelMatrices;
@@ -236,7 +304,7 @@ int main() {
 
         ModelMatrices[i] = Model;
 
-        Scene_AddInstance(Scene, Asteroid);
+        Scene_AddInstance(Scene1, Asteroid);
     }
 
     // configure instanced array
@@ -286,19 +354,19 @@ int main() {
     Vegetation.push_back(glm::vec3(0.5f, 0.0f, -0.6f));
 
     mesh GrassMesh;
-    Mesh_CreateQuad(&GrassMesh, GrassTextures);
+    Mesh_CreateQuad(&GrassMesh, GrassTextures, 10.0f);
 
     for (unsigned int i = 0; i < Vegetation.size(); i++) {
         entity Grass = {
             .Type = entity_type::QuadMesh,
             .Position = Vegetation[i],
             .Scale = glm::vec3(1.0f),
-            .Rotation = glm::vec4(0.0f),
+            .Rotation = glm::vec4(0.0f, 1.0f, 0.3f, 0.5f),
             .Color = glm::vec4(1.0f),
             .Mesh = GrassMesh,
         };
 
-        Scene_AddEntity(Scene, Grass);
+        Scene_AddEntity(Scene1, Grass);
     }
 
     texture WindowTexture;
@@ -322,19 +390,19 @@ int main() {
          });
 
     mesh WindowMesh;
-    Mesh_CreateQuad(&WindowMesh, WindowTextures);
+    Mesh_CreateQuad(&WindowMesh, WindowTextures, 10.0f);
 
     for (unsigned int i = 0; i < Windows.size(); i++) {
         entity Window = {
             .Type = entity_type::QuadMesh,
             .Position = Windows[i],
             .Scale = glm::vec3(1.0f),
-            .Rotation = glm::vec4(0.0f),
+            .Rotation = glm::vec4(0.0f, 1.0f, 0.3f, 0.5f),
             .Color = glm::vec4(1.0f),
             .Mesh = WindowMesh,
         };
 
-        Scene_AddEntity(Scene, Window);
+        Scene_AddEntity(Scene1, Window);
     }
 
     // Lights
@@ -359,8 +427,12 @@ int main() {
             .LightType = light_type::Point,
             .AmbientStrength = 0.1f,
             .SpecularStrength = 0.5,
+            .IsEnabled = false,
+            .UseBlinn = false,
+            .ShowDebug = false,
         };
-        Scene_AddLight(Scene, PointLight);
+        Scene_AddLight(Scene1, PointLight);
+        Scene_AddLight(Scene2, PointLight);
     }
 
     light SpotLight = {
@@ -374,8 +446,12 @@ int main() {
         .LightType = light_type::Spot,
         .AmbientStrength = 0.1f,
         .SpecularStrength = 0.5,
+        .IsEnabled = false,
+        .UseBlinn = false,
+        .ShowDebug = false,
     };
-    Scene_AddLight(Scene, SpotLight);
+    Scene_AddLight(Scene1, SpotLight);
+    Scene_AddLight(Scene2, SpotLight);
 
     light DirectionalLight = {
         .Entity =
@@ -388,8 +464,12 @@ int main() {
         .LightType = light_type::Directional,
         .AmbientStrength = 0.1f,
         .SpecularStrength = 0.5,
+        .IsEnabled = true,
+        .UseBlinn = false,
+        .ShowDebug = false,
     };
-    Scene_AddLight(Scene, DirectionalLight);
+    Scene_AddLight(Scene1, DirectionalLight);
+    Scene_AddLight(Scene2, DirectionalLight);
 
     // render loop
     // -----------
@@ -431,11 +511,12 @@ int main() {
         // ------
         Renderer_ClearBackground(0.1f, 0.1f, 0.1f, 1.0f);
 
-        Renderer_DrawScene(Renderer, Scene, Context);
+        scene *CurrentScene = Context.Scenes.at(Context.CurrentSceneIdx);
+        Renderer_Draw(Renderer, *CurrentScene, Context);
 
         // gui
         // ------
-        Gui_Draw(Scene);
+        Gui_Draw(Context);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse
         // moved etc.)

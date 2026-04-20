@@ -24,15 +24,20 @@ struct mesh {
     std::vector<unsigned int> Indices;
     std::vector<texture> Textures;
 
+    float Shininess;
+
     GLuint VAO;
     GLuint VBO;
     GLuint EBO;
 };
 
 void Mesh_Create(mesh *Mesh, std::vector<vertex> Vertices,
-                 std::vector<GLuint> Indices, std::vector<texture> Textures);
-void Mesh_CreateCube(mesh *Mesh, std::vector<texture> Textures);
-void Mesh_CreateQuad(mesh *Mesh, std::vector<texture> Textures);
+                 std::vector<GLuint> Indices, std::vector<texture> Textures,
+                 float Shininess);
+void Mesh_CreateCube(mesh *Mesh, std::vector<texture> Textures,
+                     float Shininess);
+void Mesh_CreateQuad(mesh *Mesh, std::vector<texture> Textures,
+                     float Shininess);
 void Mesh_Setup(mesh *Mesh);
 void Mesh_Draw(GLuint ShaderID, mesh *Mesh);
 void Mesh_DrawInstance(GLuint ShaderID, mesh *Mesh, unsigned int InstancesNum);

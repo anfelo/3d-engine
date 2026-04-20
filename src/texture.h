@@ -3,6 +3,7 @@
 
 #include "stb_image.h"
 #include <glad/glad.h>
+#include <glm/glm.hpp>
 #include <iostream>
 
 struct texture {
@@ -10,6 +11,7 @@ struct texture {
     GLenum Type;
     std::string Name;
     std::string Path;
+    glm::vec<2, float> Repeat;
 };
 
 struct material {

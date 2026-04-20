@@ -3,6 +3,7 @@
 
 #include "camera.h"
 #include "entity.h"
+#include "scene.h"
 #include <GLFW/glfw3.h>
 
 struct context {
@@ -11,6 +12,8 @@ struct context {
     int ScreenHeight;
     int FramebufferWidth;
     int FramebufferHeight;
+    int ShadowbufferWidth;
+    int ShadowbufferHeight;
 
     camera Camera;
 
@@ -20,6 +23,9 @@ struct context {
     float LastX;
     float LastY;
     bool FirstClick;
+
+    int CurrentSceneIdx;
+    std::vector<scene *> Scenes;
 };
 
 #endif

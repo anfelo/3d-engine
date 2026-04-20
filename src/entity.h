@@ -38,6 +38,9 @@ struct light {
     light_type LightType;
     float AmbientStrength;
     float SpecularStrength;
+    bool IsEnabled;
+    bool UseBlinn;
+    bool ShowDebug;
 };
 
 #endif

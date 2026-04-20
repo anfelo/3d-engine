@@ -14,7 +14,7 @@ struct gui {
 
 gui Gui_Create(const context &Context);
 void Gui_NewFrame();
-void Gui_Draw(scene &Scene);
+void Gui_Draw(context &Context);
 void Gui_Destroy();
 
 #endif

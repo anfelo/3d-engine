@@ -1,10 +1,14 @@
 #include "mesh.h"
+#include "glm/gtc/type_ptr.hpp"
 
 void Mesh_Create(mesh *Mesh, std::vector<vertex> Vertices,
-                 std::vector<GLuint> Indices, std::vector<texture> Textures) {
+                 std::vector<GLuint> Indices, std::vector<texture> Textures,
+                 float Shininess) {
     Mesh->Vertices = Vertices;
     Mesh->Indices = Indices;
     Mesh->Textures = Textures;
+
+    Mesh->Shininess = Shininess;
 
     Mesh_Setup(Mesh);
 }
@@ -69,12 +73,17 @@ void Mesh_Draw(GLuint ShaderID, mesh *Mesh) {
     unsigned int NormalNr = 1;
     unsigned int HeightNr = 1;
 
+    glUniform1f(glGetUniformLocation(ShaderID, "u_material.shininess"),
+                Mesh->Shininess);
     glUniform1i(glGetUniformLocation(ShaderID, "u_material.has_specular"), 0);
     glUniform1i(glGetUniformLocation(ShaderID, "u_material.has_normal"), 0);
 
     for (unsigned int i = 0; i < Mesh->Textures.size(); i++) {
         // active proper texture unit before binding
         glActiveTexture(GL_TEXTURE0 + i);
+
+        glUniform2fv(glGetUniformLocation(ShaderID, "u_tex_repeat"), 1,
+                     glm::value_ptr(Mesh->Textures[i].Repeat));
         // retrieve texture number (the N in diffuse_textureN)
         std::string Number;
         std::string Name = Mesh->Textures[i].Name;
@@ -162,7 +171,8 @@ void Mesh_DrawInstance(GLuint ShaderID, mesh *Mesh, unsigned int InstancesNum) {
     glActiveTexture(GL_TEXTURE0);
 }
 
-void Mesh_CreateCube(mesh *Mesh, std::vector<texture> Textures) {
+void Mesh_CreateCube(mesh *Mesh, std::vector<texture> Textures,
+                     float Shininess) {
     std::vector<vertex> Vertices = {
         {glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(0.0f, 0.0f, -1.0f),
          glm::vec2(0.0f, 0.0f)},
@@ -251,10 +261,11 @@ void Mesh_CreateCube(mesh *Mesh, std::vector<texture> Textures) {
                                    // Top face
                                    30, 32, 31, 32, 35, 34};
 
-    Mesh_Create(Mesh, Vertices, Indices, Textures);
+    Mesh_Create(Mesh, Vertices, Indices, Textures, Shininess);
 }
 
-void Mesh_CreateQuad(mesh *Mesh, std::vector<texture> Textures) {
+void Mesh_CreateQuad(mesh *Mesh, std::vector<texture> Textures,
+                     float Shininess) {
     std::vector<vertex> Vertices = {
         {glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f),
          glm::vec2(0.0f, 0.0f)},
@@ -268,5 +279,5 @@ void Mesh_CreateQuad(mesh *Mesh, std::vector<texture> Textures) {
 
     std::vector<GLuint> Indices = {0, 1, 2, 2, 3, 0};
 
-    Mesh_Create(Mesh, Vertices, Indices, Textures);
+    Mesh_Create(Mesh, Vertices, Indices, Textures, Shininess);
 }

@@ -143,7 +143,7 @@ void Model_ProcessMesh(model *Model, mesh *Mesh, aiMesh *Ai_mesh,
                                aiTextureType_AMBIENT, "height");
 
     // return a mesh object created from the extracted mesh data
-    Mesh_Create(Mesh, Vertices, Indices, Textures);
+    Mesh_Create(Mesh, Vertices, Indices, Textures, 10.0f);
 }
 
 void Model_LoadMaterialTextures(model *Model, std::vector<texture> *Textures,
