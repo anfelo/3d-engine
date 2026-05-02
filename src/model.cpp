@@ -30,16 +30,16 @@ void Model_Load(model *Model, std::string Path) {
     Model_ProcessNode(Model, Scene->mRootNode, Scene);
 }
 
-void Model_Draw(GLuint ShaderID, model *Model) {
-    for (unsigned int i = 0; i < Model->Meshes.size(); i++) {
-        Mesh_Draw(ShaderID, &Model->Meshes[i]);
+void Model_Draw(GLuint ShaderID, const model &Model) {
+    for (unsigned int i = 0; i < Model.Meshes.size(); i++) {
+        Mesh_Draw(ShaderID, Model.Meshes[i]);
     }
 }
 
-void Model_DrawInstances(GLuint ShaderID, model *Model,
+void Model_DrawInstances(GLuint ShaderID, const model &Model,
                          unsigned int InstancesNum) {
-    for (unsigned int i = 0; i < Model->Meshes.size(); i++) {
-        Mesh_DrawInstance(ShaderID, &Model->Meshes[i], InstancesNum);
+    for (unsigned int i = 0; i < Model.Meshes.size(); i++) {
+        Mesh_DrawInstance(ShaderID, Model.Meshes[i], InstancesNum);
     }
 }
 
@@ -121,7 +121,7 @@ void Model_ProcessMesh(model *Model, mesh *Mesh, aiMesh *Ai_mesh,
         }
     }
     // process materials
-    aiMaterial *Material = Scene->mMaterials[Ai_mesh->mMaterialIndex];
+    aiMaterial *AiMaterial = Scene->mMaterials[Ai_mesh->mMaterialIndex];
     // we assume a convention for sampler names in the shaders. Each diffuse
     // texture should be named as 'texture_diffuseN' where N is a sequential
     // number ranging from 1 to MAX_SAMPLER_NUMBER. Same applies to other
@@ -130,20 +130,24 @@ void Model_ProcessMesh(model *Model, mesh *Mesh, aiMesh *Ai_mesh,
     // normal: texture_normalN
 
     // 1. diffuse maps
-    Model_LoadMaterialTextures(Model, &Textures, Material,
+    Model_LoadMaterialTextures(Model, &Textures, AiMaterial,
                                aiTextureType_DIFFUSE, "diffuse");
     // // 2. specular maps
-    Model_LoadMaterialTextures(Model, &Textures, Material,
+    Model_LoadMaterialTextures(Model, &Textures, AiMaterial,
                                aiTextureType_SPECULAR, "specular");
     // 3. normal maps
-    Model_LoadMaterialTextures(Model, &Textures, Material, aiTextureType_HEIGHT,
-                               "normal");
+    Model_LoadMaterialTextures(Model, &Textures, AiMaterial,
+                               aiTextureType_HEIGHT, "normal");
     // 4. height maps
-    Model_LoadMaterialTextures(Model, &Textures, Material,
+    Model_LoadMaterialTextures(Model, &Textures, AiMaterial,
                                aiTextureType_AMBIENT, "height");
 
+    material Material = {};
+    Material.Textures = Textures;
+    Material.Shininess = 10.0f;
+
     // return a mesh object created from the extracted mesh data
-    Mesh_Create(Mesh, Vertices, Indices, Textures, 10.0f);
+    Mesh_Create(Mesh, Vertices, Indices, Material);
 }
 
 void Model_LoadMaterialTextures(model *Model, std::vector<texture> *Textures,

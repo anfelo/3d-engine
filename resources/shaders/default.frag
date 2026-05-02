@@ -24,6 +24,7 @@ struct DirLight {
 
     bool blinn;
     bool enabled;
+    bool casts_shadow;
 };
 
 struct PointLight {
@@ -39,6 +40,7 @@ struct PointLight {
 
     bool blinn;
     bool enabled;
+    bool casts_shadow;
 };
 #define NR_POINT_LIGHTS 4
 
@@ -59,6 +61,7 @@ struct SpotLight {
 
     bool blinn;
     bool enabled;
+    bool casts_shadow;
 };
 
 uniform vec3 u_entity_color;
@@ -68,6 +71,17 @@ uniform DirLight u_dir_light;
 uniform PointLight u_point_lights[NR_POINT_LIGHTS];
 uniform SpotLight u_spot_light;
 uniform sampler2D u_shadow_map;
+uniform samplerCube u_shadow_cubemap;
+uniform float u_far_plane;
+
+vec3 sample_offset_directions[20] = vec3[]
+(
+   vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1), 
+   vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
+   vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
+   vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
+   vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
+);
 
 float CalcShadow(vec4 frag_pos_light_space, float bias) {
 
@@ -106,6 +120,60 @@ float CalcShadow(vec4 frag_pos_light_space, float bias) {
     return shadow;
 }
 
+float CalcPointShadow(vec3 frag_pos, vec3 light_pos) {
+    // get vector between fragment position and light position
+    vec3 frag_to_light = frag_pos - light_pos;
+    // use the fragment to light vector to sample from the depth map
+    // float closest_depth = texture(u_shadow_cubemap, frag_to_light).r;
+    // it is currently in linear range between [0,1], let's re-transform it back to original depth value
+    // closest_depth *= u_far_plane;
+    // now get current linear depth as the length between the fragment and light position
+    float current_depth = length(frag_to_light);
+    // test for shadows
+    // float bias = 0.05; // we use a much larger bias since depth is now in [near_plane, far_plane] range
+    // float shadow = current_depth -  bias > closest_depth ? 1.0 : 0.0;
+    // float shadow  = 0.0;
+
+    // PCF
+    // float shadow  = 0.0;
+    // float bias    = 0.05;
+    // float samples = 4.0;
+    // float offset  = 0.1;
+    // for(float x = -offset; x < offset; x += offset / (samples * 0.5)) {
+    //     for(float y = -offset; y < offset; y += offset / (samples * 0.5)) {
+    //         for(float z = -offset; z < offset; z += offset / (samples * 0.5)) {
+    //             float closest_depth = texture(u_shadow_cubemap, frag_to_light + vec3(x, y, z)).r;
+    //             closest_depth *= u_far_plane;   // undo mapping [0;1]
+    //             if(current_depth - bias > closest_depth) {
+    //                 shadow += 1.0;
+    //             }
+    //         }
+    //     }
+    // }
+    // shadow /= (samples * samples * samples);
+
+    // Sample Offset Directions - Reduce the number of sampling from PCF
+    float shadow = 0.0;
+    float bias   = 0.15;
+    int samples  = 20;
+    float view_distance = length(u_view_pos - frag_pos);
+    // float disk_radius = 0.05;
+    float disk_radius = (1.0 + (view_distance / u_far_plane)) / 25.0;
+    for(int i = 0; i < samples; ++i) {
+        float closest_depth = texture(u_shadow_cubemap, frag_to_light + sample_offset_directions[i] * disk_radius).r;
+        closest_depth *= u_far_plane;   // undo mapping [0;1]
+        if(current_depth - bias > closest_depth) {
+            shadow += 1.0;
+        }
+    }
+    shadow /= float(samples);
+
+    // display closestDepth as debug (to visualize depth cubemap)
+    // FragColor = vec4(vec3(closestDepth / far_plane), 1.0);
+
+    return shadow;
+}
+
 float CalcSpec(vec3 normal, vec3 light_dir, vec3 view_dir, bool use_blinn) {
     float spec = 0.0;
     if (use_blinn) {
@@ -138,7 +206,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 frag_pos, vec3 view_dir)
 
     // combine results
     vec3 color = vec3(texture(u_material.diffuse, TexCoords));
-    vec3 ambient  = light.ambient  * color;
+    vec3 ambient  = light.ambient * color;
     vec3 diffuse  = light.diffuse  * diff * color;
     vec3 specular = vec3(0.0);
     if (u_material.has_specular) {
@@ -147,11 +215,16 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 frag_pos, vec3 view_dir)
         specular = light.specular * spec;
     }
 
+    float shadow = light.casts_shadow ? CalcPointShadow(FragPos, light.position) : 0.0;
+
     ambient  *= attenuation;
     diffuse  *= attenuation;
     specular *= attenuation;
 
-    return (ambient + diffuse + specular);
+    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular));
+
+    // return (ambient + diffuse + specular);
+    return lighting;
 }
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 view_dir) {
@@ -179,7 +252,7 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 view_dir) {
 
     // calculate shadow
     float shadow_bias = max(0.005 * (1.0 - dot(normal, light_dir)), 0.0005);
-    float shadow = CalcShadow(FragPosLightSpace, shadow_bias);
+    float shadow = light.casts_shadow ? CalcShadow(FragPosLightSpace, shadow_bias) : 0.0;
     vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular));
 
     // return (ambient + diffuse + specular);

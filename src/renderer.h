@@ -43,6 +43,7 @@ struct directional_light {
     GLuint SpecularUniformLoc;
     GLuint EnabledUniformLoc;
     GLuint UseBlinnUniformLoc;
+    GLuint CastsShadowUniformLoc;
 };
 
 struct point_light {
@@ -55,6 +56,7 @@ struct point_light {
     GLuint QuadraticUniformLoc;
     GLuint EnabledUniformLoc;
     GLuint UseBlinnUniformLoc;
+    GLuint CastsShadowUniformLoc;
 };
 
 struct spot_light {
@@ -70,6 +72,7 @@ struct spot_light {
     GLuint OuterCutOffUniformLoc;
     GLuint EnabledUniformLoc;
     GLuint UseBlinnUniformLoc;
+    GLuint CastsShadowUniformLoc;
 };
 
 struct material_uniforms {
@@ -98,6 +101,9 @@ struct uniform_locators {
 
     GLuint LightSpaceMatrixUniformLoc;
     GLuint ShadowMapUniformLoc;
+    GLuint ShadowCubemapUniformLoc;
+    GLuint FarPlaneUniformLoc;
+    GLuint ShadowMatricesUniformLoc;
 
     material_uniforms Material;
 
@@ -119,8 +125,9 @@ struct renderer {
     shader_program ScreenShaderProgram;
     shader_program SkyBoxShaderProgram;
     shader_program InstanceShaderProgram;
-    shader_program LightCubeShaderProgram;
+    shader_program UnlitShaderProgram;
     shader_program SimpleDepthShaderProgram;
+    shader_program CubemapDepthShaderProgram;
 
     // Framebuffer stuff
     GLuint FrameBufferVAO, FrameBufferVBO;
@@ -131,6 +138,10 @@ struct renderer {
     // Depth Map stuff
     GLuint DepthMapFBO;
     GLuint DepthMapBuffer;
+
+    // Depth Cubemap stuff
+    GLuint DepthCubemapFBO;
+    GLuint DepthCubemapBuffer;
 };
 
 renderer Renderer_Create(const context &Context);
@@ -138,40 +149,25 @@ void Renderer_Destroy(renderer &Renderer);
 void Renderer_ResizeFramebuffer(const renderer &Renderer, int ScreenWidth,
                                 int ScreenHeight);
 shader_program Renderer_CreateShaderProgram(const char *VertexFile,
-                                            const char *FragmentFile);
+                                            const char *FragmentFile,
+                                            const char *GeometryFile = nullptr);
 void Renderer_Draw(const renderer &Renderer, const scene &Scene,
                    const context &Context);
 void Renderer_DrawScene(const renderer &Renderer,
-                        const shader_program &ShaderProgram,
-                        const scene &Scene);
+                        const shader_program &ShaderProgram, const scene &Scene,
+                        bool useEntityShader);
 void Renderer_DrawTriangle(const renderer &Renderer,
                            const shader_program &ShaderProgram,
                            glm::vec<3, float> position);
-void Renderer_DrawQuad(const renderer &Renderer,
-                       const shader_program &ShaderProgram,
-                       glm::vec<3, float> Position, material Material);
-void Renderer_DrawQuadMesh(const renderer &Renderer,
-                           const shader_program &ShaderProgram,
-                           glm::vec<3, float> Position,
-                           glm::vec<3, float> Scale,
-                           glm::vec<4, float> Rotation, mesh Mesh);
-void Renderer_DrawCube(const renderer &Renderer,
-                       const shader_program &ShaderProgram,
-                       glm::vec<3, float> Position, glm::vec<4, float> Rotation,
-                       glm::vec<4, float> Color, material Material,
-                       bool IsSelected);
-void Renderer_DrawCubeMesh(const renderer &Renderer,
-                           const shader_program &ShaderProgram,
-                           glm::vec<3, float> Position,
-                           glm::vec<3, float> Scale,
-                           glm::vec<4, float> Rotation,
-                           glm::vec<4, float> Color, mesh CubeMesh,
-                           bool IsSelected);
-void Renderer_DrawModel(const renderer &Renderer,
-                        const shader_program &ShaderProgram,
-                        glm::vec<3, float> Position, glm::vec<3, float> Scale,
-                        glm::vec<4, float> Rotation, glm::vec<4, float> Color,
-                        model EntityModel, bool IsSelected);
+void Renderer_DrawQuadEntity(const renderer &Renderer,
+                             const shader_program &ShaderProgram,
+                             const entity &Entity);
+void Renderer_DrawCubeEntity(const renderer &Renderer,
+                             const shader_program &ShaderProgram,
+                             const entity &Entity);
+void Renderer_DrawModelEntity(const renderer &Renderer,
+                              const shader_program &ShaderProgram,
+                              const entity &Entity);
 void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
                         glm::vec<4, float> Color, float AmbientStrength,
                         float SpecularStrength);

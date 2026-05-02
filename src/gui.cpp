@@ -41,8 +41,6 @@ void Gui_Draw(context &Context) {
         ImGui::Checkbox("Selected", &Entity.IsSelected);
         ImGui::DragFloat3("Position", glm::value_ptr(Entity.Position), 0.1f);
         ImGui::DragFloat4("Rotation", glm::value_ptr(Entity.Rotation), 0.1f);
-        ImGui::Separator();
-        ImGui::ColorEdit4("Color", glm::value_ptr(Entity.Color));
         ImGui::PopID();
     }
     ImGui::End();
@@ -58,7 +56,7 @@ void Gui_Draw(context &Context) {
 
     // Scenes
     // TODO: Make this dynamic for all the scenes that get added to the context
-    const char *Scenes[] = {"Scene1", "Scene2"};
+    const char *Scenes[] = {"Scene1", "Scene2", "Scene3"};
     ImGui::Begin("Scenes");
     ImGui::Combo("##scenes", &Context.CurrentSceneIdx, Scenes,
                  IM_ARRAYSIZE(Scenes));
@@ -73,9 +71,10 @@ void Gui_Draw(context &Context) {
         ImGui::Text("Light %d", (int)(i + 1));
         ImGui::Checkbox("Enabled", &Light.IsEnabled);
         ImGui::Checkbox("Use Blinn", &Light.UseBlinn);
+        ImGui::Checkbox("Casts Shadow", &Light.CastsShadow);
         ImGui::DragFloat3("Position", glm::value_ptr(Light.Entity.Position),
                           0.1f);
-        ImGui::ColorEdit4("Color", glm::value_ptr(Light.Entity.Color));
+        ImGui::ColorEdit4("Color", glm::value_ptr(Light.Color));
 
         ImGui::Separator();
 

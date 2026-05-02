@@ -13,13 +13,18 @@ uniform mat4 u_view;
 uniform mat4 u_projection;
 uniform vec2 u_tex_repeat;
 uniform mat4 u_light_space_matrix;
+uniform bool u_reverse_normal;
 
 void main()
 {
     FragPos = vec3(u_model * vec4(a_pos, 1.0));
 
     mat3 normal_matrix = mat3(transpose(inverse(u_model)));
-    Normal = normalize(normal_matrix * a_normal);
+    if (u_reverse_normal) {
+        Normal = normalize(normal_matrix * -1.0 * a_normal);
+    } else {
+        Normal = normalize(normal_matrix * a_normal);
+    }
 
     FragPosLightSpace = u_light_space_matrix * vec4(FragPos, 1.0);
 

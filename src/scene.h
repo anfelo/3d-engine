@@ -24,5 +24,13 @@ void Scene_Destroy(scene &Scene);
 void Scene_AddEntity(scene &Scene, entity &Entity);
 void Scene_AddInstance(scene &Scene, entity &Entity);
 void Scene_AddLight(scene &Scene, light &Light);
+void Scene_AddPointLight(scene &Scene, glm::vec3 Position, bool isEnabled);
+void Scene_AddDirectionalLight(scene &Scene, bool IsEnabled);
+void Scene_AddSpotLight(scene &Scene, bool IsEnabled);
+void Scene_AddSpotLight(scene &Scene, glm::vec3 Position, bool IsEnabled);
+
+void Scene_BuildScene1(scene &Scene, camera &Camera);
+void Scene_BuildScene2(scene &Scene, camera &Camera);
+void Scene_BuildScene3(scene &Scene, camera &Camera);
 
 #endif

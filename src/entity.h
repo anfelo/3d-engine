@@ -20,9 +20,7 @@ struct entity {
     glm::vec3 Position;
     glm::vec3 Scale;
     glm::vec4 Rotation;
-    glm::vec4 Color;
     bool IsSelected;
-    material Material;
     mesh Mesh;
     model Model;
 };
@@ -35,11 +33,13 @@ enum class light_type {
 
 struct light {
     entity Entity;
+    glm::vec4 Color;
     light_type LightType;
     float AmbientStrength;
     float SpecularStrength;
     bool IsEnabled;
     bool UseBlinn;
+    bool CastsShadow;
     bool ShowDebug;
 };
 

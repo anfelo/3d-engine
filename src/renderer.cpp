@@ -6,20 +6,17 @@
 #include <cerrno>
 
 #include "camera.h"
+#include "entity.h"
+#include "material.h"
 #include "mesh.h"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/trigonometric.hpp"
 #include "model.h"
 #include "scene.h"
-#include "texture.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
-triangle_mesh TriangleMesh = Renderer_GetTriangleMesh();
-quad_mesh QuadMesh = Renderer_GetQuadMesh();
-cube_mesh CubeMesh = Renderer_GetCubeMesh();
 
 std::string GetFileContents(const char *Filename) {
     std::ifstream in(Filename, std::ios::binary);
@@ -64,79 +61,15 @@ renderer Renderer_Create(const context &Context) {
     Renderer.InstanceShaderProgram =
         Renderer_CreateShaderProgram("./resources/shaders/instance.vert",
                                      "./resources/shaders/default.frag");
-    Renderer.LightCubeShaderProgram =
-        Renderer_CreateShaderProgram("./resources/shaders/light_cube.vert",
-                                     "./resources/shaders/light_cube.frag");
+    Renderer.UnlitShaderProgram = Renderer_CreateShaderProgram(
+        "./resources/shaders/unlit.vert", "./resources/shaders/unlit.frag");
     Renderer.SimpleDepthShaderProgram =
         Renderer_CreateShaderProgram("./resources/shaders/simple_depth.vert",
                                      "./resources/shaders/simple_depth.frag");
-
-    // ### Triangle ###
-    glGenBuffers(1, &TriangleMesh.VBO);
-    glGenVertexArrays(1, &TriangleMesh.VAO);
-
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s),
-    // and then configure vertex attributes(s).
-    glBindVertexArray(TriangleMesh.VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, TriangleMesh.VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(TriangleMesh.Vertices),
-                 TriangleMesh.Vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
-                          (void *)0);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
-    // ### Rectangle ###
-    glGenBuffers(1, &QuadMesh.VBO);
-    glGenVertexArrays(1, &QuadMesh.VAO);
-    glGenBuffers(1, &QuadMesh.EBO);
-
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s),
-    // and then configure vertex attributes(s).
-    glBindVertexArray(QuadMesh.VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, QuadMesh.VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(QuadMesh.Vertices), QuadMesh.Vertices,
-                 GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, QuadMesh.EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(QuadMesh.Indices),
-                 QuadMesh.Indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float),
-                          (void *)0);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
-    // ### Cube ###
-    glGenBuffers(1, &CubeMesh.VBO);
-    glGenVertexArrays(1, &CubeMesh.VAO);
-
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s),
-    // and then configure vertex attributes(s).
-    glBindVertexArray(CubeMesh.VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, CubeMesh.VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(CubeMesh.Vertices), CubeMesh.Vertices,
-                 GL_STATIC_DRAW);
-    // Position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                          (void *)0);
-    glEnableVertexAttribArray(0);
-
-    // Normal
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                          (void *)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    // TexCoord
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                          (void *)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glBindVertexArray(0);
+    Renderer.CubemapDepthShaderProgram =
+        Renderer_CreateShaderProgram("./resources/shaders/cube_depth.vert",
+                                     "./resources/shaders/cube_depth.frag",
+                                     "./resources/shaders/cube_depth.gs");
 
     // ### Screen Quad ###
     // Used for the framebuffer post-processing
@@ -221,17 +154,35 @@ renderer Renderer_Create(const context &Context) {
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    // ### Cube Depth Map Configuration ###
+    glGenFramebuffers(1, &Renderer.DepthCubemapFBO);
+
+    glGenTextures(1, &Renderer.DepthCubemapBuffer);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, Renderer.DepthCubemapBuffer);
+
+    for (unsigned int i = 0; i < 6; ++i) {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT,
+                     Context.ShadowbufferWidth, Context.ShadowbufferHeight, 0,
+                     GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, Renderer.DepthCubemapFBO);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                         Renderer.DepthCubemapBuffer, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     return Renderer;
 }
 
 void Renderer_Destroy(renderer &Renderer) {
-    glDeleteVertexArrays(1, &TriangleMesh.VAO);
-    glDeleteBuffers(1, &TriangleMesh.VBO);
-
-    glDeleteVertexArrays(1, &QuadMesh.VAO);
-    glDeleteBuffers(1, &QuadMesh.VBO);
-    glDeleteBuffers(1, &QuadMesh.EBO);
-
     glDeleteProgram(Renderer.ShaderProgram.ID);
     glDeleteProgram(Renderer.OutlineShaderProgram.ID);
     glDeleteProgram(Renderer.QuadShaderProgram.ID);
@@ -270,14 +221,18 @@ void Renderer_ResizeFramebuffer(const renderer &Renderer, int ScreenWidth,
 }
 
 shader_program Renderer_CreateShaderProgram(const char *VertexFile,
-                                            const char *FragmentFile) {
+                                            const char *FragmentFile,
+                                            const char *GeometryFile) {
     shader_program ShaderProgram;
 
-    std::string vertex_code = GetFileContents(VertexFile);
-    std::string fragment_code = GetFileContents(FragmentFile);
+    std::string VertexCode;
+    std::string FragmentCode;
 
-    const char *VertexShaderSource = vertex_code.c_str();
-    const char *FragmentShaderSource = fragment_code.c_str();
+    VertexCode = GetFileContents(VertexFile);
+    FragmentCode = GetFileContents(FragmentFile);
+
+    const char *VertexShaderSource = VertexCode.c_str();
+    const char *FragmentShaderSource = FragmentCode.c_str();
 
     // build and compile our shader program
     // ------------------------------------
@@ -308,10 +263,31 @@ shader_program Renderer_CreateShaderProgram(const char *VertexFile,
                   << InfoLog << std::endl;
     }
 
+    GLuint GeometryShader;
+    if (GeometryFile) {
+        std::string GeometryCode = GetFileContents(GeometryFile);
+        const char *GeometryShaderSource = GeometryCode.c_str();
+
+        GeometryShader = glCreateShader(GL_GEOMETRY_SHADER);
+        glShaderSource(GeometryShader, 1, &GeometryShaderSource, NULL);
+        glCompileShader(GeometryShader);
+        // check for shader compile errors
+        glGetShaderiv(GeometryShader, GL_COMPILE_STATUS, &Success);
+        if (!Success) {
+            glGetShaderInfoLog(GeometryShader, 512, NULL, InfoLog);
+            std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
+                      << InfoLog << std::endl;
+        }
+    }
+
     // link shaders
     ShaderProgram.ID = glCreateProgram();
     glAttachShader(ShaderProgram.ID, VertexShader);
     glAttachShader(ShaderProgram.ID, FragmentShader);
+    if (GeometryFile) {
+        glAttachShader(ShaderProgram.ID, GeometryShader);
+    }
+
     glLinkProgram(ShaderProgram.ID);
     // check for linking errors
     glGetProgramiv(ShaderProgram.ID, GL_LINK_STATUS, &Success);
@@ -322,6 +298,9 @@ shader_program Renderer_CreateShaderProgram(const char *VertexFile,
     }
     glDeleteShader(VertexShader);
     glDeleteShader(FragmentShader);
+    if (GeometryFile) {
+        glDeleteShader(GeometryShader);
+    }
 
     ShaderProgram.Uniforms.ModelUniformLoc =
         glGetUniformLocation(ShaderProgram.ID, "u_model");
@@ -335,6 +314,13 @@ shader_program Renderer_CreateShaderProgram(const char *VertexFile,
         glGetUniformLocation(ShaderProgram.ID, "u_light_space_matrix");
     ShaderProgram.Uniforms.ShadowMapUniformLoc =
         glGetUniformLocation(ShaderProgram.ID, "u_shadow_map");
+    ShaderProgram.Uniforms.ShadowCubemapUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_shadow_cubemap");
+
+    ShaderProgram.Uniforms.FarPlaneUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_far_plane");
+    ShaderProgram.Uniforms.ShadowMatricesUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_shadow_matrices");
 
     // Fragment Shader Uniform Locators
     // INFO: This are only set on the normal shader
@@ -365,6 +351,8 @@ shader_program Renderer_CreateShaderProgram(const char *VertexFile,
         glGetUniformLocation(ShaderProgram.ID, "u_dir_light.enabled");
     ShaderProgram.Uniforms.DirectionalLight.UseBlinnUniformLoc =
         glGetUniformLocation(ShaderProgram.ID, "u_dir_light.blinn");
+    ShaderProgram.Uniforms.DirectionalLight.CastsShadowUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_dir_light.casts_shadow");
 
     // PointLights
     uint32_t NumPointLights = 4;
@@ -399,6 +387,9 @@ shader_program Renderer_CreateShaderProgram(const char *VertexFile,
         snprintf(buffer, sizeof(buffer), "u_point_lights[%d].blinn", i);
         PointLight.UseBlinnUniformLoc =
             glGetUniformLocation(ShaderProgram.ID, buffer);
+        snprintf(buffer, sizeof(buffer), "u_point_lights[%d].casts_shadow", i);
+        PointLight.CastsShadowUniformLoc =
+            glGetUniformLocation(ShaderProgram.ID, buffer);
     }
 
     // SpotLight
@@ -426,6 +417,8 @@ shader_program Renderer_CreateShaderProgram(const char *VertexFile,
         glGetUniformLocation(ShaderProgram.ID, "u_spot_light.enabled");
     ShaderProgram.Uniforms.SpotLight.UseBlinnUniformLoc =
         glGetUniformLocation(ShaderProgram.ID, "u_spot_light.blinn");
+    ShaderProgram.Uniforms.SpotLight.CastsShadowUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_spot_light.casts_shadow");
 
     // Material
     ShaderProgram.Uniforms.Material.ShininessUniformLoc =
@@ -456,37 +449,61 @@ void Renderer_ClearBackground(float R, float G, float B, float Alpha) {
 }
 
 void Renderer_DrawScene(const renderer &Renderer,
-                        const shader_program &ShaderProgram,
-                        const scene &Scene) {
+                        const shader_program &ShaderProgram, const scene &Scene,
+                        bool useEntityShader = true) {
     // Entities
     for (entity Entity : Scene.Entities) {
+        shader_program Shader = ShaderProgram;
+        if (useEntityShader) {
+            switch (Entity.Mesh.Material.ShaderMaterial) {
+            case shader_material::Default:
+                Shader = Renderer.ShaderProgram;
+                break;
+            case shader_material::Unlit:
+                Shader = Renderer.UnlitShaderProgram;
+                break;
+            }
+        }
+
         switch (Entity.Type) {
         case entity_type::Cube:
-            Renderer_DrawCube(Renderer, ShaderProgram, Entity.Position,
-                              Entity.Rotation, Entity.Color, Entity.Material,
-                              Entity.IsSelected);
+            // TODO: Merge this with the CubeMesh
             break;
         case entity_type::CubeMesh:
-            Renderer_DrawCubeMesh(Renderer, ShaderProgram, Entity.Position,
-                                  Entity.Scale, Entity.Rotation, Entity.Color,
-                                  Entity.Mesh, Entity.IsSelected);
+            Renderer_DrawCubeEntity(Renderer, Shader, Entity);
             break;
         case entity_type::Model:
-            Renderer_DrawModel(Renderer, ShaderProgram, Entity.Position,
-                               Entity.Scale, Entity.Rotation, Entity.Color,
-                               Entity.Model, Entity.IsSelected);
+            Renderer_DrawModelEntity(Renderer, Shader, Entity);
             break;
         case entity_type::Triangle:
-            Renderer_DrawTriangle(Renderer, ShaderProgram, Entity.Position);
+            // TODO: Make sure this works
+            Renderer_DrawTriangle(Renderer, Shader, Entity.Position);
             break;
         case entity_type::Quad:
-            Renderer_DrawQuad(Renderer, ShaderProgram, Entity.Position,
-                              Entity.Material);
+            // TODO: Merge this with the QuadMesh
             break;
         case entity_type::QuadMesh:
-            Renderer_DrawQuadMesh(Renderer, ShaderProgram, Entity.Position,
-                                  Entity.Scale, Entity.Rotation, Entity.Mesh);
+            Renderer_DrawQuadEntity(Renderer, Shader, Entity);
             break;
+        }
+    }
+
+    if (useEntityShader) {
+        // Lights (Debug)
+        for (light Light : Scene.Lights) {
+            if (Light.ShowDebug && Light.LightType == light_type::Point) {
+                shader_program Shader = ShaderProgram;
+                switch (Light.Entity.Mesh.Material.ShaderMaterial) {
+                case shader_material::Default:
+                    Shader = Renderer.ShaderProgram;
+                    break;
+                case shader_material::Unlit:
+                    Shader = Renderer.UnlitShaderProgram;
+                    break;
+                }
+
+                Renderer_DrawCubeEntity(Renderer, Shader, Light.Entity);
+            }
         }
     }
 }
@@ -495,6 +512,7 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
                    const context &Context) {
     glEnable(GL_DEPTH_TEST);
 
+    // Directional Shadow Mapping
     // 1st. Pass: Draw the scene to the depth buffer for the shadow pass
     glViewport(0, 0, Context.ShadowbufferWidth, Context.ShadowbufferHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, Renderer.DepthMapFBO);
@@ -519,8 +537,76 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
 
     // Remove peter panning problems
     // glCullFace(GL_FRONT);
-    Renderer_DrawScene(Renderer, Renderer.SimpleDepthShaderProgram, Scene);
+    Renderer_DrawScene(Renderer, Renderer.SimpleDepthShaderProgram, Scene,
+                       false);
     glCullFace(GL_BACK);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // Point Shadow Mapping
+    glViewport(0, 0, Context.ShadowbufferWidth, Context.ShadowbufferHeight);
+    glBindFramebuffer(GL_FRAMEBUFFER, Renderer.DepthCubemapFBO);
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    glUseProgram(Renderer.CubemapDepthShaderProgram.ID);
+
+    // Set view & projection for depth shader from the light's perspective
+    float Aspect =
+        (float)Context.ShadowbufferWidth / (float)Context.ShadowbufferHeight;
+    NearPlane = 0.1f;
+    FarPlane = 25.0f;
+
+    glm::mat4 PointLightProjection =
+        glm::perspective(glm::radians(90.0f), Aspect, NearPlane, FarPlane);
+    glm::vec3 PointLightPosition = Scene.Lights[0].Entity.Position;
+
+    std::vector<glm::mat4> PointShadowTransforms;
+    PointShadowTransforms.push_back(
+        PointLightProjection *
+        glm::lookAt(PointLightPosition,
+                    PointLightPosition + glm::vec3(1.0, 0.0, 0.0),
+                    glm::vec3(0.0, -1.0, 0.0)));
+    PointShadowTransforms.push_back(
+        PointLightProjection *
+        glm::lookAt(PointLightPosition,
+                    PointLightPosition + glm::vec3(-1.0, 0.0, 0.0),
+                    glm::vec3(0.0, -1.0, 0.0)));
+    PointShadowTransforms.push_back(
+        PointLightProjection *
+        glm::lookAt(PointLightPosition,
+                    PointLightPosition + glm::vec3(0.0, 1.0, 0.0),
+                    glm::vec3(0.0, 0.0, 1.0)));
+    PointShadowTransforms.push_back(
+        PointLightProjection *
+        glm::lookAt(PointLightPosition,
+                    PointLightPosition + glm::vec3(0.0, -1.0, 0.0),
+                    glm::vec3(0.0, 0.0, -1.0)));
+    PointShadowTransforms.push_back(
+        PointLightProjection *
+        glm::lookAt(PointLightPosition,
+                    PointLightPosition + glm::vec3(0.0, 0.0, 1.0),
+                    glm::vec3(0.0, -1.0, 0.0)));
+    PointShadowTransforms.push_back(
+        PointLightProjection *
+        glm::lookAt(PointLightPosition,
+                    PointLightPosition + glm::vec3(0.0, 0.0, -1.0),
+                    glm::vec3(0.0, -1.0, 0.0)));
+
+    glUniform3fv(
+        Renderer.CubemapDepthShaderProgram.Uniforms.LightPositionUniformLoc, 1,
+        glm::value_ptr(PointLightPosition));
+    glUniform1fv(Renderer.CubemapDepthShaderProgram.Uniforms.FarPlaneUniformLoc,
+                 1, &FarPlane);
+    for (unsigned int i = 0; i < 6; ++i) {
+        glUniformMatrix4fv(
+            glGetUniformLocation(
+                Renderer.CubemapDepthShaderProgram.ID,
+                ("u_shadow_matrices[" + std::to_string(i) + "]").c_str()),
+            1, GL_FALSE, glm::value_ptr(PointShadowTransforms[i]));
+    }
+
+    Renderer_DrawScene(Renderer, Renderer.CubemapDepthShaderProgram, Scene,
+                       false);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -538,6 +624,8 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     glClearStencil(0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+    glUseProgram(Renderer.ShaderProgram.ID);
+
     // Sets the view & projection uniforms for all the programs
     Renderer_SetCameraUniforms(Renderer, Context.Camera, Context.ScreenWidth,
                                Context.ScreenHeight);
@@ -545,15 +633,21 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     Renderer_SetSceneLightsUniforms(Renderer, Renderer.ShaderProgram, Scene,
                                     Context.Camera);
 
-    glUseProgram(Renderer.ShaderProgram.ID);
+    // Directional Shadow Map
     glActiveTexture(GL_TEXTURE3);
     glUniform1i(Renderer.ShaderProgram.Uniforms.ShadowMapUniformLoc, 3);
+    glBindTexture(GL_TEXTURE_2D, Renderer.DepthMapBuffer);
+
+    // Point Shadow Cubemap
+    glActiveTexture(GL_TEXTURE4);
+    glUniform1i(Renderer.ShaderProgram.Uniforms.ShadowCubemapUniformLoc, 4);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, Renderer.DepthCubemapBuffer);
 
     glUniformMatrix4fv(
         Renderer.ShaderProgram.Uniforms.LightSpaceMatrixUniformLoc, 1, GL_FALSE,
         glm::value_ptr(LightSpaceMatrix));
-
-    glBindTexture(GL_TEXTURE_2D, Renderer.DepthMapBuffer);
+    glUniform1fv(Renderer.ShaderProgram.Uniforms.FarPlaneUniformLoc, 1,
+                 &FarPlane);
 
     Renderer_DrawScene(Renderer, Renderer.ShaderProgram, Scene);
 
@@ -561,7 +655,7 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     if (Scene.Instances.size() > 0) {
         glUseProgram(Renderer.InstanceShaderProgram.ID);
         model Model = Scene.Instances[0].Model;
-        Model_DrawInstances(Renderer.InstanceShaderProgram.ID, &Model,
+        Model_DrawInstances(Renderer.InstanceShaderProgram.ID, Model,
                             Scene.Instances.size());
     }
 
@@ -597,6 +691,7 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
+// TODO: Needs fixing
 void Renderer_DrawTriangle(const renderer &Renderer,
                            const shader_program &ShaderProgram,
                            glm::vec<3, float> position) {
@@ -619,102 +714,63 @@ void Renderer_DrawTriangle(const renderer &Renderer,
     glUniformMatrix4fv(ShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
                        glm::value_ptr(model));
 
-    glBindVertexArray(TriangleMesh.VAO);
+    // glBindVertexArray(TriangleMesh.VAO);
     // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
-void Renderer_DrawQuad(const renderer &Renderer,
-                       const shader_program &ShaderProgram,
-                       glm::vec<3, float> Position, material Material) {
-    glUseProgram(ShaderProgram.ID);
-
-    glUniform1i(ShaderProgram.Uniforms.Material.DiffuseUniformLoc, 0);
-    glUniform1i(ShaderProgram.Uniforms.Material.SpecularUniformLoc, 1);
-    glUniform1i(ShaderProgram.Uniforms.Material.NormalUniformLoc, 2);
-    glUniform1i(ShaderProgram.Uniforms.Material.HasNormalUniformLoc,
-                Material.HasNormalMap ? 1 : 0);
-    glUniform1i(ShaderProgram.Uniforms.Material.HasSpecularUniformLoc,
-                Material.HasSpecularMap ? 1 : 0);
-
-    Texture_Bind(&Material.DiffuseMap, GL_TEXTURE0);
-    Texture_Bind(&Material.SpecularMap, GL_TEXTURE1);
-    Texture_Bind(&Material.NormalMap, GL_TEXTURE2);
-
-    glm::mat4 Model = glm::mat4(1.0f);
-    Model = glm::translate(Model, Position);
-
-    glUniformMatrix4fv(ShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
-                       glm::value_ptr(Model));
-
-    glBindVertexArray(QuadMesh.VAO);
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-}
-
-void Renderer_DrawQuadMesh(const renderer &Renderer,
-                           const shader_program &ShaderProgram,
-                           glm::vec<3, float> Position,
-                           glm::vec<3, float> Scale,
-                           glm::vec<4, float> Rotation, mesh Mesh) {
+void Renderer_DrawQuadEntity(const renderer &Renderer,
+                             const shader_program &ShaderProgram,
+                             const entity &Entity) {
     glDisable(GL_CULL_FACE);
     glUseProgram(ShaderProgram.ID);
 
     glm::mat4 Model = glm::mat4(1.0f);
-    Model = glm::translate(Model, Position);
-    Model = glm::scale(Model, Scale);
+    Model = glm::translate(Model, Entity.Position);
+    Model = glm::scale(Model, Entity.Scale);
 
-    glm::vec3 RotationVec = glm::vec3(Rotation[1], Rotation[2], Rotation[3]);
-    Model = glm::rotate(Model, glm::radians(Rotation[0]), RotationVec);
+    glm::vec3 RotationVec =
+        glm::vec3(Entity.Rotation[1], Entity.Rotation[2], Entity.Rotation[3]);
+    Model = glm::rotate(Model, glm::radians(Entity.Rotation[0]), RotationVec);
 
     glUniformMatrix4fv(ShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
                        glm::value_ptr(Model));
 
-    Mesh_Draw(ShaderProgram.ID, &Mesh);
+    Mesh_Draw(ShaderProgram.ID, Entity.Mesh);
     glEnable(GL_CULL_FACE);
 }
 
-void Renderer_DrawCube(const renderer &Renderer,
-                       const shader_program &ShaderProgram,
-                       glm::vec<3, float> Position, glm::vec<4, float> Rotation,
-                       glm::vec<4, float> Color, material Material,
-                       bool IsSelected) {
+void Renderer_DrawCubeEntity(const renderer &Renderer,
+                             const shader_program &ShaderProgram,
+                             const entity &Entity) {
+    if (!Entity.Mesh.Material.CullFace) {
+        glDisable(GL_CULL_FACE);
+    }
+
     // 1st render pass
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glStencilMask(0xFF);
 
     glUseProgram(ShaderProgram.ID);
 
-    glUniform1i(ShaderProgram.Uniforms.Material.DiffuseUniformLoc, 0);
-    glUniform1i(ShaderProgram.Uniforms.Material.SpecularUniformLoc, 1);
-    glUniform1i(ShaderProgram.Uniforms.Material.NormalUniformLoc, 2);
-    glUniform1i(ShaderProgram.Uniforms.Material.HasNormalUniformLoc,
-                Material.HasNormalMap ? 1 : 0);
-    glUniform1i(ShaderProgram.Uniforms.Material.HasSpecularUniformLoc,
-                Material.HasSpecularMap ? 1 : 0);
-
-    Texture_Bind(&Material.DiffuseMap, GL_TEXTURE0);
-    Texture_Bind(&Material.SpecularMap, GL_TEXTURE1);
-    Texture_Bind(&Material.NormalMap, GL_TEXTURE2);
-
+    glm::vec4 Color = Entity.Mesh.Material.Color;
     glm::vec3 CubeColor = glm::vec3(Color[0], Color[1], Color[2]);
     glUniform3fv(ShaderProgram.Uniforms.EntityColorUniformLoc, 1,
                  glm::value_ptr(CubeColor));
 
     glm::mat4 Model = glm::mat4(1.0f);
-    Model = glm::translate(Model, Position);
-    Model = glm::scale(Model, glm::vec3(1.0f));
+    Model = glm::translate(Model, Entity.Position);
+    Model = glm::scale(Model, Entity.Scale);
 
-    glm::vec3 RotationVec = glm::vec3(Rotation[1], Rotation[2], Rotation[3]);
-    Model = glm::rotate(Model, glm::radians(Rotation[0]), RotationVec);
+    glm::vec3 RotationVec =
+        glm::vec3(Entity.Rotation[1], Entity.Rotation[2], Entity.Rotation[3]);
+    Model = glm::rotate(Model, glm::radians(Entity.Rotation[0]), RotationVec);
     glUniformMatrix4fv(ShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
                        glm::value_ptr(Model));
 
-    glBindVertexArray(CubeMesh.VAO);
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    Mesh_Draw(ShaderProgram.ID, Entity.Mesh);
 
-    if (IsSelected) {
+    if (Entity.IsSelected) {
         // 2st render pass: draws the outline
         glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
         glStencilMask(0xFF);
@@ -723,101 +779,53 @@ void Renderer_DrawCube(const renderer &Renderer,
         glUseProgram(Renderer.OutlineShaderProgram.ID);
 
         Model = glm::mat4(1.0f);
-        Model = glm::translate(Model, Position);
+        Model = glm::translate(Model, Entity.Position);
         Model = glm::scale(Model, glm::vec3(1.02f));
-        Model = glm::rotate(Model, glm::radians(Rotation[0]), RotationVec);
+        Model =
+            glm::rotate(Model, glm::radians(Entity.Rotation[0]), RotationVec);
         glUniformMatrix4fv(
             Renderer.OutlineShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
             glm::value_ptr(Model));
 
-        glBindVertexArray(CubeMesh.VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        Mesh_Draw(Renderer.OutlineShaderProgram.ID, Entity.Mesh);
 
         glStencilMask(0xFF);
         glStencilFunc(GL_ALWAYS, 1, 0xFF);
         glEnable(GL_DEPTH_TEST);
     }
-}
 
-void Renderer_DrawCubeMesh(const renderer &Renderer,
-                           const shader_program &ShaderProgram,
-                           glm::vec<3, float> Position,
-                           glm::vec<3, float> Scale,
-                           glm::vec<4, float> Rotation,
-                           glm::vec<4, float> Color, mesh CubeMesh,
-                           bool IsSelected) {
-    // 1st render pass
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);
-    glStencilMask(0xFF);
-
-    glUseProgram(ShaderProgram.ID);
-
-    glm::vec3 CubeColor = glm::vec3(Color[0], Color[1], Color[2]);
-    glUniform3fv(ShaderProgram.Uniforms.EntityColorUniformLoc, 1,
-                 glm::value_ptr(CubeColor));
-
-    glm::mat4 Model = glm::mat4(1.0f);
-    Model = glm::translate(Model, Position);
-    Model = glm::scale(Model, Scale);
-
-    glm::vec3 RotationVec = glm::vec3(Rotation[1], Rotation[2], Rotation[3]);
-    Model = glm::rotate(Model, glm::radians(Rotation[0]), RotationVec);
-    glUniformMatrix4fv(ShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
-                       glm::value_ptr(Model));
-
-    Mesh_Draw(ShaderProgram.ID, &CubeMesh);
-
-    if (IsSelected) {
-        // 2st render pass: draws the outline
-        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-        glStencilMask(0xFF);
-        glDisable(GL_DEPTH_TEST);
-
-        glUseProgram(Renderer.OutlineShaderProgram.ID);
-
-        Model = glm::mat4(1.0f);
-        Model = glm::translate(Model, Position);
-        Model = glm::scale(Model, glm::vec3(1.02f));
-        Model = glm::rotate(Model, glm::radians(Rotation[0]), RotationVec);
-        glUniformMatrix4fv(
-            Renderer.OutlineShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
-            glm::value_ptr(Model));
-
-        Mesh_Draw(Renderer.OutlineShaderProgram.ID, &CubeMesh);
-
-        glStencilMask(0xFF);
-        glStencilFunc(GL_ALWAYS, 1, 0xFF);
-        glEnable(GL_DEPTH_TEST);
+    if (!Entity.Mesh.Material.CullFace) {
+        glEnable(GL_CULL_FACE);
     }
 }
 
-void Renderer_DrawModel(const renderer &Renderer,
-                        const shader_program &ShaderProgram,
-                        glm::vec<3, float> Position, glm::vec<3, float> Scale,
-                        glm::vec<4, float> Rotation, glm::vec<4, float> Color,
-                        model EntityModel, bool IsSelected) {
+void Renderer_DrawModelEntity(const renderer &Renderer,
+                              const shader_program &ShaderProgram,
+                              const entity &Entity) {
     // 1st render pass
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
     glStencilMask(0xFF);
 
     glUseProgram(ShaderProgram.ID);
 
+    glm::vec4 Color = Entity.Mesh.Material.Color;
     glm::vec3 CubeColor = glm::vec3(Color[0], Color[1], Color[2]);
     glUniform3fv(ShaderProgram.Uniforms.EntityColorUniformLoc, 1,
                  glm::value_ptr(CubeColor));
 
     glm::mat4 Model = glm::mat4(1.0f);
-    Model = glm::translate(Model, Position);
-    Model = glm::scale(Model, Scale);
+    Model = glm::translate(Model, Entity.Position);
+    Model = glm::scale(Model, Entity.Scale);
 
-    glm::vec3 RotationVec = glm::vec3(Rotation[1], Rotation[2], Rotation[3]);
-    Model = glm::rotate(Model, glm::radians(Rotation[0]), RotationVec);
+    glm::vec3 RotationVec =
+        glm::vec3(Entity.Rotation[1], Entity.Rotation[2], Entity.Rotation[3]);
+    Model = glm::rotate(Model, glm::radians(Entity.Rotation[0]), RotationVec);
     glUniformMatrix4fv(ShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
                        glm::value_ptr(Model));
 
-    Model_Draw(ShaderProgram.ID, &EntityModel);
+    Model_Draw(ShaderProgram.ID, Entity.Model);
 
-    if (IsSelected) {
+    if (Entity.IsSelected) {
         // 2st render pass: draws the outline
         glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
         glStencilMask(0xFF);
@@ -826,14 +834,15 @@ void Renderer_DrawModel(const renderer &Renderer,
         glUseProgram(Renderer.OutlineShaderProgram.ID);
 
         Model = glm::mat4(1.0f);
-        Model = glm::translate(Model, Position);
-        Model = glm::scale(Model, Scale + 0.01f);
-        Model = glm::rotate(Model, glm::radians(Rotation[0]), RotationVec);
+        Model = glm::translate(Model, Entity.Position);
+        Model = glm::scale(Model, Entity.Scale + 0.01f);
+        Model =
+            glm::rotate(Model, glm::radians(Entity.Rotation[0]), RotationVec);
         glUniformMatrix4fv(
             Renderer.OutlineShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
             glm::value_ptr(Model));
 
-        Model_Draw(Renderer.OutlineShaderProgram.ID, &EntityModel);
+        Model_Draw(Renderer.OutlineShaderProgram.ID, Entity.Model);
 
         glStencilMask(0xFF);
         glStencilFunc(GL_ALWAYS, 1, 0xFF);
@@ -869,7 +878,7 @@ void Renderer_DrawSkybox(const renderer &Renderer, const skybox &Skybox) {
     glUseProgram(Renderer.SkyBoxShaderProgram.ID);
 
     mesh SkyboxMesh = Skybox.Mesh;
-    Mesh_Draw(Renderer.SkyBoxShaderProgram.ID, &SkyboxMesh);
+    Mesh_Draw(Renderer.SkyBoxShaderProgram.ID, SkyboxMesh);
 
     glEnable(GL_CULL_FACE);
     glDepthFunc(GL_LESS);
@@ -911,12 +920,15 @@ void Renderer_SetSceneLightsUniforms(const renderer &Renderer,
             glUniform1i(
                 ShaderProgram.Uniforms.DirectionalLight.UseBlinnUniformLoc,
                 Scene.Lights[i].UseBlinn ? 1 : 0);
+            glUniform1i(
+                ShaderProgram.Uniforms.DirectionalLight.CastsShadowUniformLoc,
+                Scene.Lights[i].CastsShadow ? 1 : 0);
             break;
         }
         case light_type::Point: {
-            glm::vec3 PointLightAmbient = glm::vec3(
-                Scene.Lights[i].Entity.Color.r, Scene.Lights[i].Entity.Color.g,
-                Scene.Lights[i].Entity.Color.b);
+            glm::vec3 PointLightAmbient =
+                glm::vec3(Scene.Lights[i].Color.r, Scene.Lights[i].Color.g,
+                          Scene.Lights[i].Color.b);
             glm::vec3 PointLightDiffuse = glm::vec3(0.8f, 0.8f, 0.8f);
             glm::vec3 PointLightSpecular = glm::vec3(1.0f, 1.0f, 1.0f);
             glUniform3fv(
@@ -936,6 +948,9 @@ void Renderer_SetSceneLightsUniforms(const renderer &Renderer,
             glUniform1i(
                 ShaderProgram.Uniforms.PointLights[i].UseBlinnUniformLoc,
                 Scene.Lights[i].UseBlinn ? 1 : 0);
+            glUniform1i(
+                ShaderProgram.Uniforms.PointLights[i].CastsShadowUniformLoc,
+                Scene.Lights[i].CastsShadow ? 1 : 0);
 
             float Constant = 1.0f;
             float Linear = 0.09f;
@@ -968,6 +983,8 @@ void Renderer_SetSceneLightsUniforms(const renderer &Renderer,
                         Scene.Lights[i].IsEnabled ? 1 : 0);
             glUniform1i(ShaderProgram.Uniforms.SpotLight.UseBlinnUniformLoc,
                         Scene.Lights[i].UseBlinn ? 1 : 0);
+            glUniform1i(ShaderProgram.Uniforms.SpotLight.CastsShadowUniformLoc,
+                        Scene.Lights[i].CastsShadow ? 1 : 0);
 
             float Constant = 1.0f;
             float Linear = 0.09f;
@@ -1040,18 +1057,17 @@ void Renderer_SetCameraUniforms(const renderer &Renderer, const camera &Camera,
     glUniform3fv(Renderer.InstanceShaderProgram.Uniforms.ViewPositionUniformLoc,
                  1, glm::value_ptr(Camera.Position));
 
-    // Set view & projection for light cube shader
-    glUseProgram(Renderer.LightCubeShaderProgram.ID);
+    // Set view & projection for unlit shader
+    glUseProgram(Renderer.UnlitShaderProgram.ID);
     // Sets the uniform value
-    glUniformMatrix4fv(Renderer.LightCubeShaderProgram.Uniforms.ViewUniformLoc,
-                       1, GL_FALSE, glm::value_ptr(View));
+    glUniformMatrix4fv(Renderer.UnlitShaderProgram.Uniforms.ViewUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(View));
     glUniformMatrix4fv(
-        Renderer.LightCubeShaderProgram.Uniforms.ProjectionUniformLoc, 1,
-        GL_FALSE, glm::value_ptr(Projection));
+        Renderer.UnlitShaderProgram.Uniforms.ProjectionUniformLoc, 1, GL_FALSE,
+        glm::value_ptr(Projection));
 
-    glUniform3fv(
-        Renderer.LightCubeShaderProgram.Uniforms.ViewPositionUniformLoc, 1,
-        glm::value_ptr(Camera.Position));
+    glUniform3fv(Renderer.UnlitShaderProgram.Uniforms.ViewPositionUniformLoc, 1,
+                 glm::value_ptr(Camera.Position));
 
     // Set view & projection for skybox shader
     View = glm::mat4(glm::mat3(View));
@@ -1065,71 +1081,4 @@ void Renderer_SetCameraUniforms(const renderer &Renderer, const camera &Camera,
 
     glUniform3fv(Renderer.SkyBoxShaderProgram.Uniforms.ViewPositionUniformLoc,
                  1, glm::value_ptr(Camera.Position));
-}
-
-triangle_mesh Renderer_GetTriangleMesh() {
-    return triangle_mesh{
-        .Vertices{-0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f},
-    };
-}
-
-quad_mesh Renderer_GetQuadMesh() {
-    return quad_mesh{
-        .Vertices{
-            0.5f, 0.5f, 0.0f,   // top right
-            0.5f, -0.5f, 0.0f,  // bottom right
-            -0.5f, -0.5f, 0.0f, // bottom left
-            -0.5f, 0.5f, 0.0f   // top left
-        },
-        .Indices{0, 1, 3, 1, 2, 3},
-    };
-}
-
-cube_mesh Renderer_GetCubeMesh() {
-    return cube_mesh{
-        .Vertices{
-            // positions         // normals           // texture coords
-            -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f, 0.0f,
-            0.5f,  -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 1.0f, 0.0f,
-            0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, 1.0f, 1.0f,
-            0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, 1.0f, 1.0f,
-            -0.5f, 0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f, 0.0f,
-
-            -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,
-            0.5f,  -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 0.0f,
-            0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,
-            0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,
-            -0.5f, 0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 1.0f,
-            -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,
-
-            -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  1.0f, 0.0f,
-            -0.5f, 0.5f,  -0.5f, -1.0f, 0.0f,  0.0f,  1.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f,  0.0f, 1.0f,
-            -0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f,  0.0f, 1.0f,
-            -0.5f, -0.5f, 0.5f,  -1.0f, 0.0f,  0.0f,  0.0f, 0.0f,
-            -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  1.0f, 0.0f,
-
-            0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-            0.5f,  0.5f,  -0.5f, 1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-            0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-            0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-            0.5f,  -0.5f, 0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-            0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
-            -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.0f, 1.0f,
-            0.5f,  -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  1.0f, 1.0f,
-            0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,  1.0f, 0.0f,
-            0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,  1.0f, 0.0f,
-            -0.5f, -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,  0.0f, 0.0f,
-            -0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.0f, 1.0f,
-
-            -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
-            0.5f,  0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
-            0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-            0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-            -0.5f, 0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
-            -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
-        },
-    };
 }

@@ -2,13 +2,10 @@
 #include "glm/gtc/type_ptr.hpp"
 
 void Mesh_Create(mesh *Mesh, std::vector<vertex> Vertices,
-                 std::vector<GLuint> Indices, std::vector<texture> Textures,
-                 float Shininess) {
+                 std::vector<GLuint> Indices, material Material) {
     Mesh->Vertices = Vertices;
     Mesh->Indices = Indices;
-    Mesh->Textures = Textures;
-
-    Mesh->Shininess = Shininess;
+    Mesh->Material = Material;
 
     Mesh_Setup(Mesh);
 }
@@ -66,7 +63,7 @@ void Mesh_Setup(mesh *Mesh) {
     glBindVertexArray(0);
 }
 
-void Mesh_Draw(GLuint ShaderID, mesh *Mesh) {
+void Mesh_Draw(GLuint ShaderID, const mesh &Mesh) {
     // bind appropriate textures
     unsigned int DiffuseNr = 1;
     unsigned int SpecularNr = 1;
@@ -74,19 +71,21 @@ void Mesh_Draw(GLuint ShaderID, mesh *Mesh) {
     unsigned int HeightNr = 1;
 
     glUniform1f(glGetUniformLocation(ShaderID, "u_material.shininess"),
-                Mesh->Shininess);
+                Mesh.Material.Shininess);
     glUniform1i(glGetUniformLocation(ShaderID, "u_material.has_specular"), 0);
     glUniform1i(glGetUniformLocation(ShaderID, "u_material.has_normal"), 0);
+    glUniform1i(glGetUniformLocation(ShaderID, "u_reverse_normal"),
+                Mesh.Material.ReverseNormal ? 1 : 0);
 
-    for (unsigned int i = 0; i < Mesh->Textures.size(); i++) {
+    for (unsigned int i = 0; i < Mesh.Material.Textures.size(); i++) {
         // active proper texture unit before binding
         glActiveTexture(GL_TEXTURE0 + i);
 
         glUniform2fv(glGetUniformLocation(ShaderID, "u_tex_repeat"), 1,
-                     glm::value_ptr(Mesh->Textures[i].Repeat));
+                     glm::value_ptr(Mesh.Material.Textures[i].Repeat));
         // retrieve texture number (the N in diffuse_textureN)
         std::string Number;
-        std::string Name = Mesh->Textures[i].Name;
+        std::string Name = Mesh.Material.Textures[i].Name;
         if (Name == "diffuse") {
             Number = std::to_string(DiffuseNr++);
         } else if (Name == "specular") {
@@ -107,13 +106,13 @@ void Mesh_Draw(GLuint ShaderID, mesh *Mesh) {
         glUniform1i(
             glGetUniformLocation(ShaderID, ("u_material." + Name).c_str()), i);
         // and finally bind the texture
-        glBindTexture(Mesh->Textures[i].Type, Mesh->Textures[i].ID);
+        glBindTexture(Mesh.Material.Textures[i].Type,
+                      Mesh.Material.Textures[i].ID);
     }
 
     // draw mesh
-    glBindVertexArray(Mesh->VAO);
-    glDrawElements(GL_TRIANGLES,
-                   static_cast<unsigned int>(Mesh->Indices.size()),
+    glBindVertexArray(Mesh.VAO);
+    glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(Mesh.Indices.size()),
                    GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 
@@ -121,7 +120,8 @@ void Mesh_Draw(GLuint ShaderID, mesh *Mesh) {
     glActiveTexture(GL_TEXTURE0);
 }
 
-void Mesh_DrawInstance(GLuint ShaderID, mesh *Mesh, unsigned int InstancesNum) {
+void Mesh_DrawInstance(GLuint ShaderID, const mesh &Mesh,
+                       unsigned int InstancesNum) {
     // bind appropriate textures
     unsigned int DiffuseNr = 1;
     unsigned int SpecularNr = 1;
@@ -131,12 +131,12 @@ void Mesh_DrawInstance(GLuint ShaderID, mesh *Mesh, unsigned int InstancesNum) {
     glUniform1i(glGetUniformLocation(ShaderID, "u_material.has_specular"), 0);
     glUniform1i(glGetUniformLocation(ShaderID, "u_material.has_normal"), 0);
 
-    for (unsigned int i = 0; i < Mesh->Textures.size(); i++) {
+    for (unsigned int i = 0; i < Mesh.Material.Textures.size(); i++) {
         // active proper texture unit before binding
         glActiveTexture(GL_TEXTURE0 + i);
         // retrieve texture number (the N in diffuse_textureN)
         std::string Number;
-        std::string Name = Mesh->Textures[i].Name;
+        std::string Name = Mesh.Material.Textures[i].Name;
         if (Name == "diffuse") {
             Number = std::to_string(DiffuseNr++);
         } else if (Name == "specular") {
@@ -157,13 +157,14 @@ void Mesh_DrawInstance(GLuint ShaderID, mesh *Mesh, unsigned int InstancesNum) {
         glUniform1i(
             glGetUniformLocation(ShaderID, ("u_material." + Name).c_str()), i);
         // and finally bind the texture
-        glBindTexture(Mesh->Textures[i].Type, Mesh->Textures[i].ID);
+        glBindTexture(Mesh.Material.Textures[i].Type,
+                      Mesh.Material.Textures[i].ID);
     }
 
     // draw mesh
-    glBindVertexArray(Mesh->VAO);
+    glBindVertexArray(Mesh.VAO);
     glDrawElementsInstanced(GL_TRIANGLES,
-                            static_cast<unsigned int>(Mesh->Indices.size()),
+                            static_cast<unsigned int>(Mesh.Indices.size()),
                             GL_UNSIGNED_INT, 0, InstancesNum);
     glBindVertexArray(0);
 
@@ -171,8 +172,7 @@ void Mesh_DrawInstance(GLuint ShaderID, mesh *Mesh, unsigned int InstancesNum) {
     glActiveTexture(GL_TEXTURE0);
 }
 
-void Mesh_CreateCube(mesh *Mesh, std::vector<texture> Textures,
-                     float Shininess) {
+void Mesh_CreateCube(mesh *Mesh, material Material) {
     std::vector<vertex> Vertices = {
         {glm::vec3(-0.5f, -0.5f, -0.5f), glm::vec3(0.0f, 0.0f, -1.0f),
          glm::vec2(0.0f, 0.0f)},
@@ -261,11 +261,10 @@ void Mesh_CreateCube(mesh *Mesh, std::vector<texture> Textures,
                                    // Top face
                                    30, 32, 31, 32, 35, 34};
 
-    Mesh_Create(Mesh, Vertices, Indices, Textures, Shininess);
+    Mesh_Create(Mesh, Vertices, Indices, Material);
 }
 
-void Mesh_CreateQuad(mesh *Mesh, std::vector<texture> Textures,
-                     float Shininess) {
+void Mesh_CreateQuad(mesh *Mesh, material Material) {
     std::vector<vertex> Vertices = {
         {glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f),
          glm::vec2(0.0f, 0.0f)},
@@ -279,5 +278,5 @@ void Mesh_CreateQuad(mesh *Mesh, std::vector<texture> Textures,
 
     std::vector<GLuint> Indices = {0, 1, 2, 2, 3, 0};
 
-    Mesh_Create(Mesh, Vertices, Indices, Textures, Shininess);
+    Mesh_Create(Mesh, Vertices, Indices, Material);
 }
