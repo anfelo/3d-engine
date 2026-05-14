@@ -7,6 +7,9 @@
 scene Scene_Create() {
     scene Scene = {};
 
+    Scene.HDREnabled = false;
+    Scene.HDRExposure = 1.0f;
+
     return Scene;
 }
 
@@ -26,11 +29,11 @@ void Scene_AddLight(scene &Scene, light &Light) {
     Scene.Lights.push_back(Light);
 }
 
-void Scene_AddPointLight(scene &Scene, glm::vec3 Position,
+void Scene_AddPointLight(scene &Scene, glm::vec3 Position, glm::vec4 Color,
                          bool IsEnabled = true) {
     material LightDebugMaterial = {};
     Material_Create(LightDebugMaterial);
-    LightDebugMaterial.Color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f);
+    LightDebugMaterial.Color = Color;
     LightDebugMaterial.ShaderMaterial = shader_material::Unlit;
 
     mesh LightDebugMesh;
@@ -45,7 +48,7 @@ void Scene_AddPointLight(scene &Scene, glm::vec3 Position,
                 .Rotation = glm::vec4(0.0f, 1.0f, 0.3f, 0.5f),
                 .Mesh = LightDebugMesh,
             },
-        .Color = glm::vec4(0.05f, 0.05f, 0.05f, 1.0f),
+        .Color = Color,
         .LightType = light_type::Point,
         .AmbientStrength = 0.1f,
         .SpecularStrength = 0.5,
@@ -383,7 +386,8 @@ void Scene_BuildScene1(scene &Scene, camera &Camera) {
         sizeof(PointLightPositions) / sizeof(PointLightPositions[0]);
 
     for (size_t i = 0; i < PointLightPositionsLength; i++) {
-        Scene_AddPointLight(Scene, PointLightPositions[i]);
+        Scene_AddPointLight(Scene, PointLightPositions[i],
+                            glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     }
     Scene_AddSpotLight(Scene, Camera.Position);
     Scene_AddDirectionalLight(Scene);
@@ -492,7 +496,8 @@ void Scene_BuildScene2(scene &Scene, camera &Camera) {
         sizeof(PointLightPositions) / sizeof(PointLightPositions[0]);
 
     for (size_t i = 0; i < PointLightPositionsLength; i++) {
-        Scene_AddPointLight(Scene, PointLightPositions[i], false);
+        Scene_AddPointLight(Scene, PointLightPositions[i],
+                            glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), false);
     }
     Scene_AddSpotLight(Scene, Camera.Position, false);
     Scene_AddDirectionalLight(Scene);
@@ -576,7 +581,60 @@ void Scene_BuildScene3(scene &Scene, camera &Camera) {
         sizeof(PointLightPositions) / sizeof(PointLightPositions[0]);
 
     for (size_t i = 0; i < PointLightPositionsLength; i++) {
-        Scene_AddPointLight(Scene, PointLightPositions[i], i == 0);
+        Scene_AddPointLight(Scene, PointLightPositions[i],
+                            glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), i == 0);
+    }
+    Scene_AddSpotLight(Scene, Camera.Position, false);
+    Scene_AddDirectionalLight(Scene, false);
+}
+
+void Scene_BuildScene4(scene &Scene, camera &Camera) {
+    texture WoodTexture;
+    Texture_Create(&WoodTexture, "./resources/textures/wood.png", GL_TEXTURE_2D,
+                   GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+
+    std::vector<texture> ContainerTextures = {WoodTexture};
+
+    material ContainerMaterial = {};
+    Material_Create(ContainerMaterial);
+    ContainerMaterial.Textures = ContainerTextures;
+    ContainerMaterial.CullFace = false;
+    ContainerMaterial.ReverseNormal = true;
+
+    mesh ContainerMesh;
+    Mesh_CreateCube(&ContainerMesh, ContainerMaterial);
+
+    entity Container = {
+        .Type = entity_type::CubeMesh,
+        .Position = glm::vec3(0.0f, 0.0f, 0.0f),
+        .Scale = glm::vec3(1.0f, 1.0f, 27.0f),
+        .Rotation = glm::vec4(0.0f, 1.0f, 0.3f, 0.5f),
+        .IsSelected = false,
+        .Mesh = ContainerMesh,
+    };
+
+    Scene_AddEntity(Scene, Container);
+
+    // Lights
+    glm::vec3 PointLightPositions[] = {
+        glm::vec3(0.0f, 0.0f, -12.0f),
+        glm::vec3(2.3f, -3.3f, -4.0f),
+        glm::vec3(-4.0f, 2.0f, -12.0f),
+        glm::vec3(0.0f, 0.0f, -3.0f),
+    };
+    glm::vec4 PointLightColors[] = {
+        glm::vec4(200.0f, 200.0f, 200.0f, 1.0f),
+        glm::vec4(0.1f, 0.0f, 0.0f, 1.0f),
+        glm::vec4(0.0f, 0.0f, 0.2f, 1.0f),
+        glm::vec4(0.0f, 0.1f, 0.0f, 1.0f),
+    };
+
+    size_t PointLightPositionsLength =
+        sizeof(PointLightPositions) / sizeof(PointLightPositions[0]);
+
+    for (size_t i = 0; i < PointLightPositionsLength; i++) {
+        Scene_AddPointLight(Scene, PointLightPositions[i], PointLightColors[i],
+                            i == 0);
     }
     Scene_AddSpotLight(Scene, Camera.Position, false);
     Scene_AddDirectionalLight(Scene, false);

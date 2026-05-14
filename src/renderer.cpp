@@ -106,8 +106,8 @@ renderer Renderer_Create(const context &Context) {
     // create a color attachment texture
     glGenTextures(1, &Renderer.TextureColorBuffer);
     glBindTexture(GL_TEXTURE_2D, Renderer.TextureColorBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Context.ScreenWidth,
-                 Context.ScreenHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, Context.ScreenWidth,
+                 Context.ScreenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
@@ -321,6 +321,12 @@ shader_program Renderer_CreateShaderProgram(const char *VertexFile,
         glGetUniformLocation(ShaderProgram.ID, "u_far_plane");
     ShaderProgram.Uniforms.ShadowMatricesUniformLoc =
         glGetUniformLocation(ShaderProgram.ID, "u_shadow_matrices");
+
+    // HDR Uniform Locators
+    ShaderProgram.Uniforms.HDRExposureUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_exposure");
+    ShaderProgram.Uniforms.HDREnabledUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_hdr_enabled");
 
     // Fragment Shader Uniform Locators
     // INFO: This are only set on the normal shader
@@ -684,6 +690,10 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
 
     glUniform1iv(Renderer.ScreenShaderProgram.Uniforms.EffectUniformLoc, 1,
                  &Scene.Effect);
+    glUniform1i(Renderer.ScreenShaderProgram.Uniforms.HDREnabledUniformLoc,
+                Scene.HDREnabled ? 1 : 0);
+    glUniform1fv(Renderer.ScreenShaderProgram.Uniforms.HDRExposureUniformLoc, 1,
+                 &Scene.HDRExposure);
 
     // use the color attachment texture as
     // the texture of the quad plane
@@ -926,10 +936,10 @@ void Renderer_SetSceneLightsUniforms(const renderer &Renderer,
             break;
         }
         case light_type::Point: {
-            glm::vec3 PointLightAmbient =
+            glm::vec3 PointLightAmbient = glm::vec3(0.0f, 0.0f, 0.0f);
+            glm::vec3 PointLightDiffuse =
                 glm::vec3(Scene.Lights[i].Color.r, Scene.Lights[i].Color.g,
                           Scene.Lights[i].Color.b);
-            glm::vec3 PointLightDiffuse = glm::vec3(0.8f, 0.8f, 0.8f);
             glm::vec3 PointLightSpecular = glm::vec3(1.0f, 1.0f, 1.0f);
             glUniform3fv(
                 ShaderProgram.Uniforms.PointLights[i].PositionUniformLoc, 1,
@@ -952,9 +962,9 @@ void Renderer_SetSceneLightsUniforms(const renderer &Renderer,
                 ShaderProgram.Uniforms.PointLights[i].CastsShadowUniformLoc,
                 Scene.Lights[i].CastsShadow ? 1 : 0);
 
-            float Constant = 1.0f;
-            float Linear = 0.09f;
-            float Quadratic = 0.032f;
+            float Constant = 0.0f;
+            float Linear = 0.0f;
+            float Quadratic = 1.0f;
             glUniform1f(
                 ShaderProgram.Uniforms.PointLights[i].ConstantUniformLoc,
                 Constant);
@@ -986,9 +996,9 @@ void Renderer_SetSceneLightsUniforms(const renderer &Renderer,
             glUniform1i(ShaderProgram.Uniforms.SpotLight.CastsShadowUniformLoc,
                         Scene.Lights[i].CastsShadow ? 1 : 0);
 
-            float Constant = 1.0f;
-            float Linear = 0.09f;
-            float Quadratic = 0.032f;
+            float Constant = 0.0f;
+            float Linear = 0.0f;
+            float Quadratic = 1.0f;
             float CutOff = glm::cos(glm::radians(12.5f));
             float OuterCutOff = glm::cos(glm::radians(15.0f));
             glUniform1f(ShaderProgram.Uniforms.SpotLight.ConstantUniformLoc,

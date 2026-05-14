@@ -78,14 +78,17 @@ int main() {
     scene Scene1 = Scene_Create();
     scene Scene2 = Scene_Create();
     scene Scene3 = Scene_Create();
+    scene Scene4 = Scene_Create();
 
     Context.Scenes.push_back(&Scene1);
     Context.Scenes.push_back(&Scene2);
     Context.Scenes.push_back(&Scene3);
+    Context.Scenes.push_back(&Scene4);
 
     Scene_BuildScene1(Scene1, Context.Camera);
     Scene_BuildScene2(Scene2, Context.Camera);
     Scene_BuildScene3(Scene3, Context.Camera);
+    Scene_BuildScene4(Scene4, Context.Camera);
 
     // render loop
     // -----------

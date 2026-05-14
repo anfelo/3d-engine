@@ -52,11 +52,14 @@ void Gui_Draw(context &Context) {
     ImGui::Text("Framebuffer Effects");
     ImGui::Combo("##effects", &CurrentScene->Effect, Effects,
                  IM_ARRAYSIZE(Effects));
+    ImGui::Checkbox("Use HDR", &CurrentScene->HDREnabled);
+    ImGui::DragFloat("Exposure", &CurrentScene->HDRExposure, 0.01f, 0.0f,
+                     10.0f);
     ImGui::End();
 
     // Scenes
     // TODO: Make this dynamic for all the scenes that get added to the context
-    const char *Scenes[] = {"Scene1", "Scene2", "Scene3"};
+    const char *Scenes[] = {"Scene1", "Scene2", "Scene3", "Scene4"};
     ImGui::Begin("Scenes");
     ImGui::Combo("##scenes", &Context.CurrentSceneIdx, Scenes,
                  IM_ARRAYSIZE(Scenes));

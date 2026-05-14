@@ -3,8 +3,11 @@ out vec4 FragColor;
 
 in vec2 TexCoords;
 
+// Use HDR buffer
 uniform sampler2D u_screen_texture;
 uniform int u_effect;
+uniform bool u_hdr_enabled;
+uniform float u_exposure;
 
 const float offset = 1.0 / 300.0;
 vec2 offsets[9] = vec2[](
@@ -39,6 +42,7 @@ float blur_kernel[9] = float[](
 
 void main()
 {
+    const float gamma = 2.2;
     vec4 color = texture(u_screen_texture, TexCoords);
 
     vec3 sample_tex[9];
@@ -85,6 +89,17 @@ void main()
         }
         color = vec4(col5, 1.0);
         break;
+    }
+
+    if(u_hdr_enabled) {
+        // reinhard
+        // vec3 result = hdrColor / (hdrColor + vec3(1.0));
+        // exposure
+        color = vec4(1.0) - exp(-color * u_exposure);
+        // also gamma correct while we're at it
+        color = pow(color, vec4(1.0 / gamma));
+    } else {
+        color = pow(color, vec4(1.0 / gamma));
     }
 
     FragColor = vec4(color.rgb, 1.0);

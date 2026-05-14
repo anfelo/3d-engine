@@ -105,6 +105,9 @@ struct uniform_locators {
     GLuint FarPlaneUniformLoc;
     GLuint ShadowMatricesUniformLoc;
 
+    GLuint HDRExposureUniformLoc;
+    GLuint HDREnabledUniformLoc;
+
     material_uniforms Material;
 
     directional_light DirectionalLight;
