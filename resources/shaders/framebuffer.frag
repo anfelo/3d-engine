@@ -91,16 +91,14 @@ void main()
         break;
     }
 
+    vec3 mapped = color.rgb;
     if(u_hdr_enabled) {
-        // reinhard
-        // vec3 result = hdrColor / (hdrColor + vec3(1.0));
-        // exposure
-        color = vec4(1.0) - exp(-color * u_exposure);
-        // also gamma correct while we're at it
-        color = pow(color, vec4(1.0 / gamma));
-    } else {
-        color = pow(color, vec4(1.0 / gamma));
+        // exposure tone mapping in linear HDR space
+        mapped = vec3(1.0) - exp(-mapped * u_exposure);
     }
 
-    FragColor = vec4(color.rgb, 1.0);
+    // Gamma correction is the final linear -> sRGB conversion. Do this exactly once.
+    mapped = pow(max(mapped, vec3(0.0)), vec3(1.0 / gamma));
+
+    FragColor = vec4(mapped, 1.0);
 }

@@ -1,5 +1,24 @@
 #include "texture.h"
 
+#include <algorithm>
+#include <cctype>
+#include <string>
+
+static bool Texture_IsColorData(const char *File) {
+    std::string Path = File ? File : "";
+    std::transform(Path.begin(), Path.end(), Path.begin(),
+                   [](unsigned char C) { return std::tolower(C); });
+
+    // Albedo/diffuse/base-color textures are usually authored in sRGB.
+    // Data maps must stay linear or they will break lighting/normal decoding.
+    return Path.find("normal") == std::string::npos &&
+           Path.find("specular") == std::string::npos &&
+           Path.find("roughness") == std::string::npos &&
+           Path.find("metal") == std::string::npos &&
+           Path.find("height") == std::string::npos &&
+           Path.find("disp") == std::string::npos;
+}
+
 void Texture_Create(texture *Tex, const char *File, GLenum TexType, GLenum Slot,
                     GLenum Format, GLenum PixelType) {
     Tex->Type = TexType;
@@ -17,6 +36,7 @@ void Texture_Create(texture *Tex, const char *File, GLenum TexType, GLenum Slot,
     unsigned char *Data = stbi_load(File, &Width, &Height, &NrChannels, 0);
     if (Data) {
         GLenum InternalFormat;
+        bool IsColorData = Texture_IsColorData(File);
         switch (NrChannels) {
         case 1:
             Format = GL_RED;
@@ -24,15 +44,15 @@ void Texture_Create(texture *Tex, const char *File, GLenum TexType, GLenum Slot,
             break;
         case 3:
             Format = GL_RGB;
-            InternalFormat = GL_RGB8;
+            InternalFormat = IsColorData ? GL_SRGB8 : GL_RGB8;
             break;
         case 4:
             Format = GL_RGBA;
-            InternalFormat = GL_RGBA8;
+            InternalFormat = IsColorData ? GL_SRGB8_ALPHA8 : GL_RGBA8;
             break;
         default:
             Format = GL_RGB;
-            InternalFormat = GL_RGB8;
+            InternalFormat = IsColorData ? GL_SRGB8 : GL_RGB8;
             break;
         }
         glTexImage2D(Tex->Type, 0, InternalFormat, Width, Height, 0, Format,
@@ -80,15 +100,15 @@ void Texture_CreateCubemap(texture *Tex, std::vector<std::string> Faces) {
                 break;
             case 3:
                 Format = GL_RGB;
-                InternalFormat = GL_RGB8;
+                InternalFormat = GL_SRGB8;
                 break;
             case 4:
                 Format = GL_RGBA;
-                InternalFormat = GL_RGBA8;
+                InternalFormat = GL_SRGB8_ALPHA8;
                 break;
             default:
                 Format = GL_RGB;
-                InternalFormat = GL_RGB8;
+                InternalFormat = GL_SRGB8;
                 break;
             }
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, InternalFormat,

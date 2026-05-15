@@ -201,8 +201,8 @@ void Renderer_ResizeFramebuffer(const renderer &Renderer, int ScreenWidth,
     }
 
     glBindTexture(GL_TEXTURE_2D, Renderer.TextureColorBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ScreenWidth, ScreenHeight, 0, GL_RGB,
-                 GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, ScreenWidth, ScreenHeight, 0,
+                 GL_RGBA, GL_FLOAT, NULL);
 
     glBindRenderbuffer(GL_RENDERBUFFER, Renderer.RBO);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, ScreenWidth,
@@ -626,7 +626,7 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     // rendering screen-space quad)
     glEnable(GL_DEPTH_TEST);
     // make sure we clear the framebuffer's content
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
     glClearStencil(0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
@@ -661,8 +661,8 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     if (Scene.Instances.size() > 0) {
         glUseProgram(Renderer.InstanceShaderProgram.ID);
 
-        Renderer_SetSceneLightsUniforms(Renderer, Renderer.InstanceShaderProgram,
-                                        Scene, Context.Camera);
+        Renderer_SetSceneLightsUniforms(
+            Renderer, Renderer.InstanceShaderProgram, Scene, Context.Camera);
 
         // Directional Shadow Map
         glActiveTexture(GL_TEXTURE3);
@@ -688,7 +688,7 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     }
 
     // Skybox
-    Renderer_DrawSkybox(Renderer, Scene.Skybox);
+    // Renderer_DrawSkybox(Renderer, Scene.Skybox);
 
     // 3th. Pass: Draw whatever is in the Framebuffer to the screen quad
     // now bind back to default framebuffer and draw a quad plane with the
@@ -716,6 +716,7 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
 
     // use the color attachment texture as
     // the texture of the quad plane
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, Renderer.TextureColorBuffer);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }

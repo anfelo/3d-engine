@@ -44,7 +44,7 @@ int main() {
         .ShadowbufferWidth = 1024,
         .ShadowbufferHeight = 1024,
         .DeltaTime = 0.0f,
-        .CurrentSceneIdx = 1,
+        .CurrentSceneIdx = 4,
     };
 
     if (Context.Window == NULL) {
@@ -79,16 +79,19 @@ int main() {
     scene Scene2 = Scene_Create();
     scene Scene3 = Scene_Create();
     scene Scene4 = Scene_Create();
+    scene Scene5 = Scene_Create();
 
     Context.Scenes.push_back(&Scene1);
     Context.Scenes.push_back(&Scene2);
     Context.Scenes.push_back(&Scene3);
     Context.Scenes.push_back(&Scene4);
+    Context.Scenes.push_back(&Scene5);
 
     Scene_BuildScene1(Scene1, Context.Camera);
     Scene_BuildScene2(Scene2, Context.Camera);
     Scene_BuildScene3(Scene3, Context.Camera);
     Scene_BuildScene4(Scene4, Context.Camera);
+    Scene_BuildScene5(Scene5, Context.Camera);
 
     // render loop
     // -----------
@@ -128,7 +131,7 @@ int main() {
 
         // render
         // ------
-        Renderer_ClearBackground(0.1f, 0.1f, 0.1f, 1.0f);
+        Renderer_ClearBackground(0.01f, 0.01f, 0.01f, 1.0f);
 
         scene *CurrentScene = Context.Scenes.at(Context.CurrentSceneIdx);
         Renderer_Draw(Renderer, *CurrentScene, Context);

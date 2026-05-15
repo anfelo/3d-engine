@@ -30,7 +30,7 @@ void Scene_AddLight(scene &Scene, light &Light) {
 }
 
 void Scene_AddPointLight(scene &Scene, glm::vec3 Position, glm::vec4 Color,
-                         bool IsEnabled = true) {
+                         bool IsEnabled = true, bool ShowDebug = false) {
     material LightDebugMaterial = {};
     Material_Create(LightDebugMaterial);
     LightDebugMaterial.Color = Color;
@@ -55,7 +55,7 @@ void Scene_AddPointLight(scene &Scene, glm::vec3 Position, glm::vec4 Color,
         .IsEnabled = IsEnabled,
         .UseBlinn = false,
         .CastsShadow = false,
-        .ShowDebug = false,
+        .ShowDebug = ShowDebug,
     };
     Scene_AddLight(Scene, PointLight);
 }
@@ -635,6 +635,100 @@ void Scene_BuildScene4(scene &Scene, camera &Camera) {
     for (size_t i = 0; i < PointLightPositionsLength; i++) {
         Scene_AddPointLight(Scene, PointLightPositions[i], PointLightColors[i],
                             i == 0);
+    }
+    Scene_AddSpotLight(Scene, Camera.Position, false);
+    Scene_AddDirectionalLight(Scene, false);
+}
+
+void Scene_BuildScene5(scene &Scene, camera &Camera) {
+    // Floor
+    texture FloorTexture;
+    Texture_Create(&FloorTexture, "./resources/textures/wood.png",
+                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+    FloorTexture.Name = "diffuse";
+    FloorTexture.Repeat = glm::vec2(20.0);
+    std::vector<texture> FloorTextures = {FloorTexture};
+
+    material FloorMaterial = {};
+    Material_Create(FloorMaterial);
+    FloorMaterial.Textures = FloorTextures;
+    FloorMaterial.Shininess = 16.0f;
+    FloorMaterial.Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f);
+
+    mesh FloorMesh;
+    Mesh_CreateQuad(&FloorMesh, FloorMaterial);
+
+    entity Floor = {
+        .Type = entity_type::QuadMesh,
+        .Position = glm::vec3(0.0f, -1.0f, 0.0f),
+        .Scale = glm::vec3(5.0f),
+        .Rotation = glm::vec4(-90.0f, 1.0f, 0.0f, 0.0f),
+        .IsSelected = false,
+        .Mesh = FloorMesh,
+    };
+
+    Scene_AddEntity(Scene, Floor);
+
+    // Entities
+    texture ContainerDiffuseMap;
+    Texture_Create(&ContainerDiffuseMap, "./resources/textures/container.png",
+                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+    ContainerDiffuseMap.Name = "diffuse";
+    texture ContainerSpecularMap;
+    Texture_Create(&ContainerSpecularMap,
+                   "./resources/textures/container_specular.png", GL_TEXTURE_2D,
+                   GL_TEXTURE1, GL_RGBA, GL_UNSIGNED_BYTE);
+    ContainerSpecularMap.Name = "specular";
+
+    std::vector<texture> ContainerTextures = {ContainerDiffuseMap,
+                                              ContainerSpecularMap};
+
+    material ContainerMaterial = {};
+    Material_Create(ContainerMaterial);
+    ContainerMaterial.Textures = ContainerTextures;
+
+    mesh ContainerMesh;
+    Mesh_CreateCube(&ContainerMesh, ContainerMaterial);
+
+    entity Container1 = {
+        .Type = entity_type::CubeMesh,
+        .Position = glm::vec3(-0.3f, 0.0f, 0.4f),
+        .Scale = glm::vec3(0.4f),
+        .Rotation = glm::vec4(60.0f, 1.0f, 0.3f, 0.5f),
+        .IsSelected = false,
+        .Mesh = ContainerMesh,
+    };
+    entity Container2 = {
+        .Type = entity_type::CubeMesh,
+        .Position = glm::vec3(1.0f, -0.8f, 1.0f),
+        .Scale = glm::vec3(0.4f),
+        .Rotation = glm::vec4(0.0f, 1.0f, 0.3f, 0.5f),
+        .IsSelected = false,
+        .Mesh = ContainerMesh,
+    };
+
+    Scene_AddEntity(Scene, Container1);
+    Scene_AddEntity(Scene, Container2);
+
+    // Lights
+    glm::vec3 PointLightPositions[] = {
+        glm::vec3(0.0f, 0.5f, 1.5f),
+        glm::vec3(-4.0f, 0.5f, -3.0f),
+        glm::vec3(3.0f, 0.5f, 1.0f),
+        glm::vec3(-0.8f, 2.4f, -1.0f),
+    };
+    glm::vec4 PointLightColors[] = {
+        glm::vec4(5.0f, 5.0f, 5.0f, 1.0f),
+        glm::vec4(10.0f, 0.0f, 0.0f, 1.0f),
+        glm::vec4(0.0f, 0.0f, 15.0f, 1.0f),
+        glm::vec4(0.0f, 5.0f, 0.0f, 1.0f),
+    };
+    size_t PointLightPositionsLength =
+        sizeof(PointLightPositions) / sizeof(PointLightPositions[0]);
+
+    for (size_t i = 0; i < PointLightPositionsLength; i++) {
+        Scene_AddPointLight(Scene, PointLightPositions[i], PointLightColors[i],
+                            true, true);
     }
     Scene_AddSpotLight(Scene, Camera.Position, false);
     Scene_AddDirectionalLight(Scene, false);
