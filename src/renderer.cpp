@@ -70,6 +70,10 @@ renderer Renderer_Create(const context &Context) {
         Renderer_CreateShaderProgram("./resources/shaders/cube_depth.vert",
                                      "./resources/shaders/cube_depth.frag",
                                      "./resources/shaders/cube_depth.gs");
+    Renderer.BlurShaderProgram = Renderer_CreateShaderProgram(
+        "./resources/shaders/blur.vert", "./resources/shaders/blur.frag");
+    glUseProgram(Renderer.BlurShaderProgram.ID);
+    glUniform1i(Renderer.BlurShaderProgram.Uniforms.ScreenTextureUniformLoc, 0);
 
     // ### Screen Quad ###
     // Used for the framebuffer post-processing
@@ -99,6 +103,8 @@ renderer Renderer_Create(const context &Context) {
     glUseProgram(Renderer.ScreenShaderProgram.ID);
     glUniform1i(Renderer.ScreenShaderProgram.Uniforms.ScreenTextureUniformLoc,
                 0);
+    glUniform1i(Renderer.ScreenShaderProgram.Uniforms.BloomTextureUniformLoc,
+                1);
 
     // ### Framebuffer Configuration ###
     glGenFramebuffers(1, &Renderer.FrameBuffer);
@@ -110,8 +116,26 @@ renderer Renderer_Create(const context &Context) {
                  Context.ScreenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // we clamp to the edge as the blur filter would otherwise sample repeated
+    // texture values!
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                            Renderer.TextureColorBuffer, 0);
+
+    // create another color attachment texture for only the bright colors
+    glGenTextures(1, &Renderer.BrightColorBuffer);
+    glBindTexture(GL_TEXTURE_2D, Renderer.BrightColorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, Context.ScreenWidth,
+                 Context.ScreenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // we clamp to the edge as the blur filter would otherwise sample repeated
+    // texture values!
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D,
+                           Renderer.BrightColorBuffer, 0);
     // create a renderbuffer object for depth and stencil attachment (we won't
     // be sampling these)
     glGenRenderbuffers(1, &Renderer.RBO);
@@ -122,8 +146,12 @@ renderer Renderer_Create(const context &Context) {
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8,
                           Context.ScreenWidth, Context.ScreenHeight);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
-                              GL_RENDERBUFFER,
-                              Renderer.RBO); // now actually attach it
+                              GL_RENDERBUFFER, Renderer.RBO);
+
+    // tell OpenGL which color attachments we'll use (of this framebuffer) for
+    // rendering
+    unsigned int Attachments[2] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    glDrawBuffers(2, Attachments);
     // now that we actually created the framebuffer and added all attachments we
     // want to check if it is actually complete now
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -131,6 +159,30 @@ renderer Renderer_Create(const context &Context) {
                   << std::endl;
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // ping-pong-framebuffer for blurring
+    glGenFramebuffers(2, Renderer.PingPongFBO);
+    glGenTextures(2, Renderer.PingPongColorBuffers);
+    for (unsigned int i = 0; i < 2; i++) {
+        glBindFramebuffer(GL_FRAMEBUFFER, Renderer.PingPongFBO[i]);
+        glBindTexture(GL_TEXTURE_2D, Renderer.PingPongColorBuffers[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, Context.ScreenWidth,
+                     Context.ScreenHeight, 0, GL_RGBA, GL_FLOAT, NULL);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        // we clamp to the edge as the blur filter would
+        // otherwise sample repeated texture values!
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                               GL_TEXTURE_2D, Renderer.PingPongColorBuffers[i],
+                               0);
+        // also check if framebuffers are complete (no need for depth buffer)
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) !=
+            GL_FRAMEBUFFER_COMPLETE) {
+            std::cout << "Framebuffer not complete!" << std::endl;
+        }
+    }
 
     // ### Depth Map Configuration ###
     glGenFramebuffers(1, &Renderer.DepthMapFBO);
@@ -327,6 +379,14 @@ shader_program Renderer_CreateShaderProgram(const char *VertexFile,
         glGetUniformLocation(ShaderProgram.ID, "u_exposure");
     ShaderProgram.Uniforms.HDREnabledUniformLoc =
         glGetUniformLocation(ShaderProgram.ID, "u_hdr_enabled");
+
+    // Bloom Filter Uniform Locators
+    ShaderProgram.Uniforms.BloomTextureUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_bloom_texture");
+    ShaderProgram.Uniforms.BloomEnabledUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_bloom_enabled");
+    ShaderProgram.Uniforms.HorizontalUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_horizontal");
 
     // Fragment Shader Uniform Locators
     // INFO: This are only set on the normal shader
@@ -688,7 +748,31 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     }
 
     // Skybox
-    // Renderer_DrawSkybox(Renderer, Scene.Skybox);
+    Renderer_DrawSkybox(Renderer, Scene.Skybox);
+
+    // Bloom Blur Pass: blur bright fragments with two-pass Gaussian Blur
+    // --------------------------------------------------
+    bool Horizontal = true, FirstIteration = true;
+    unsigned int Amount = 10;
+    glUseProgram(Renderer.BlurShaderProgram.ID);
+    glBindVertexArray(Renderer.FrameBufferVAO);
+    glActiveTexture(GL_TEXTURE0);
+    for (unsigned int i = 0; i < Amount; i++) {
+        glBindFramebuffer(GL_FRAMEBUFFER, Renderer.PingPongFBO[Horizontal]);
+        glUniform1i(Renderer.BlurShaderProgram.Uniforms.HorizontalUniformLoc,
+                    Horizontal);
+        // bind texture of other framebuffer (or scene if first iteration)
+        glBindTexture(GL_TEXTURE_2D,
+                      FirstIteration
+                          ? Renderer.BrightColorBuffer
+                          : Renderer.PingPongColorBuffers[!Horizontal]);
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        Horizontal = !Horizontal;
+        if (FirstIteration) {
+            FirstIteration = false;
+        }
+    }
 
     // 3th. Pass: Draw whatever is in the Framebuffer to the screen quad
     // now bind back to default framebuffer and draw a quad plane with the
@@ -713,11 +797,15 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
                 Scene.HDREnabled ? 1 : 0);
     glUniform1fv(Renderer.ScreenShaderProgram.Uniforms.HDRExposureUniformLoc, 1,
                  &Scene.HDRExposure);
+    glUniform1i(Renderer.ScreenShaderProgram.Uniforms.BloomEnabledUniformLoc,
+                Scene.BloomEnabled ? 1 : 0);
 
     // use the color attachment texture as
     // the texture of the quad plane
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, Renderer.TextureColorBuffer);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, Renderer.PingPongColorBuffers[!Horizontal]);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 

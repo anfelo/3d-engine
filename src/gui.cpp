@@ -55,6 +55,7 @@ void Gui_Draw(context &Context) {
     ImGui::Checkbox("Use HDR", &CurrentScene->HDREnabled);
     ImGui::DragFloat("Exposure", &CurrentScene->HDRExposure, 0.01f, 0.0f,
                      10.0f);
+    ImGui::Checkbox("Use Bloom", &CurrentScene->BloomEnabled);
     ImGui::End();
 
     // Scenes

@@ -108,6 +108,10 @@ struct uniform_locators {
     GLuint HDRExposureUniformLoc;
     GLuint HDREnabledUniformLoc;
 
+    GLuint HorizontalUniformLoc;
+    GLuint BloomEnabledUniformLoc;
+    GLuint BloomTextureUniformLoc;
+
     material_uniforms Material;
 
     directional_light DirectionalLight;
@@ -131,12 +135,18 @@ struct renderer {
     shader_program UnlitShaderProgram;
     shader_program SimpleDepthShaderProgram;
     shader_program CubemapDepthShaderProgram;
+    shader_program BlurShaderProgram;
 
     // Framebuffer stuff
     GLuint FrameBufferVAO, FrameBufferVBO;
     GLuint FrameBuffer;
     GLuint TextureColorBuffer;
+    GLuint BrightColorBuffer;
     GLuint RBO; // render buffer object
+
+    // PingPong Framebuffers stuff (for bloom filter)
+    GLuint PingPongFBO[2];
+    GLuint PingPongColorBuffers[2];
 
     // Depth Map stuff
     GLuint DepthMapFBO;

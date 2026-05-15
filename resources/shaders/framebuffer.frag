@@ -5,8 +5,10 @@ in vec2 TexCoords;
 
 // Use HDR buffer
 uniform sampler2D u_screen_texture;
+uniform sampler2D u_bloom_texture;
 uniform int u_effect;
 uniform bool u_hdr_enabled;
+uniform bool u_bloom_enabled;
 uniform float u_exposure;
 
 const float offset = 1.0 / 300.0;
@@ -44,6 +46,11 @@ void main()
 {
     const float gamma = 2.2;
     vec4 color = texture(u_screen_texture, TexCoords);
+    vec3 bloom_color = texture(u_bloom_texture, TexCoords).rgb;
+
+    if(u_bloom_enabled) {
+        color += vec4(bloom_color, 0.0); // additive blending
+    }
 
     vec3 sample_tex[9];
     for(int i = 0; i < 9; i++)
@@ -97,7 +104,7 @@ void main()
         mapped = vec3(1.0) - exp(-mapped * u_exposure);
     }
 
-    // Gamma correction is the final linear -> sRGB conversion. Do this exactly once.
+    // Gamma correction is the final linear -> sRGB conversion.
     mapped = pow(max(mapped, vec3(0.0)), vec3(1.0 / gamma));
 
     FragColor = vec4(mapped, 1.0);

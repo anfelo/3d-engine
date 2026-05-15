@@ -20,6 +20,8 @@ struct scene {
 
     bool HDREnabled;
     float HDRExposure;
+
+    bool BloomEnabled;
 };
 
 scene Scene_Create();

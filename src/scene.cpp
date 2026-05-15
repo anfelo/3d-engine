@@ -9,6 +9,7 @@ scene Scene_Create() {
 
     Scene.HDREnabled = false;
     Scene.HDRExposure = 1.0f;
+    Scene.BloomEnabled = false;
 
     return Scene;
 }
@@ -589,6 +590,8 @@ void Scene_BuildScene3(scene &Scene, camera &Camera) {
 }
 
 void Scene_BuildScene4(scene &Scene, camera &Camera) {
+    Scene.HDREnabled = true;
+
     texture WoodTexture;
     Texture_Create(&WoodTexture, "./resources/textures/wood.png", GL_TEXTURE_2D,
                    GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
@@ -641,6 +644,9 @@ void Scene_BuildScene4(scene &Scene, camera &Camera) {
 }
 
 void Scene_BuildScene5(scene &Scene, camera &Camera) {
+    Scene.HDREnabled = true;
+    Scene.BloomEnabled = true;
+
     // Floor
     texture FloorTexture;
     Texture_Create(&FloorTexture, "./resources/textures/wood.png",
@@ -706,16 +712,25 @@ void Scene_BuildScene5(scene &Scene, camera &Camera) {
         .IsSelected = false,
         .Mesh = ContainerMesh,
     };
+    entity Container3 = {
+        .Type = entity_type::CubeMesh,
+        .Position = glm::vec3(0.0f, -1.0f, 0.0f),
+        .Scale = glm::vec3(1.0f),
+        .Rotation = glm::vec4(60.0f, 1.0f, 0.3f, 0.5f),
+        .IsSelected = false,
+        .Mesh = ContainerMesh,
+    };
 
     Scene_AddEntity(Scene, Container1);
     Scene_AddEntity(Scene, Container2);
+    Scene_AddEntity(Scene, Container3);
 
     // Lights
     glm::vec3 PointLightPositions[] = {
-        glm::vec3(0.0f, 0.5f, 1.5f),
-        glm::vec3(-4.0f, 0.5f, -3.0f),
-        glm::vec3(3.0f, 0.5f, 1.0f),
-        glm::vec3(-0.8f, 2.4f, -1.0f),
+        glm::vec3(0.0f, 0.0f, 0.9f),
+        glm::vec3(-0.2f, 0.6f, 0.0f),
+        glm::vec3(1.4f, -0.6f, 0.6f),
+        glm::vec3(1.0f, 0.2f, -0.6f),
     };
     glm::vec4 PointLightColors[] = {
         glm::vec4(5.0f, 5.0f, 5.0f, 1.0f),
