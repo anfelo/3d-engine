@@ -660,13 +660,32 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     // TODO: Keeping the instances out of the shadow pass for now.
     if (Scene.Instances.size() > 0) {
         glUseProgram(Renderer.InstanceShaderProgram.ID);
+
+        Renderer_SetSceneLightsUniforms(Renderer, Renderer.InstanceShaderProgram,
+                                        Scene, Context.Camera);
+
+        // Directional Shadow Map
+        glActiveTexture(GL_TEXTURE3);
+        glUniform1i(Renderer.InstanceShaderProgram.Uniforms.ShadowMapUniformLoc,
+                    3);
+        glBindTexture(GL_TEXTURE_2D, Renderer.DepthMapBuffer);
+
+        // Point Shadow Cubemap
+        glActiveTexture(GL_TEXTURE4);
+        glUniform1i(
+            Renderer.InstanceShaderProgram.Uniforms.ShadowCubemapUniformLoc, 4);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, Renderer.DepthCubemapBuffer);
+
+        glUniformMatrix4fv(
+            Renderer.InstanceShaderProgram.Uniforms.LightSpaceMatrixUniformLoc,
+            1, GL_FALSE, glm::value_ptr(LightSpaceMatrix));
+        glUniform1fv(Renderer.InstanceShaderProgram.Uniforms.FarPlaneUniformLoc,
+                     1, &FarPlane);
+
         model Model = Scene.Instances[0].Model;
         Model_DrawInstances(Renderer.InstanceShaderProgram.ID, Model,
                             Scene.Instances.size());
     }
-
-    Renderer_SetSceneLightsUniforms(Renderer, Renderer.InstanceShaderProgram,
-                                    Scene, Context.Camera);
 
     // Skybox
     Renderer_DrawSkybox(Renderer, Scene.Skybox);
