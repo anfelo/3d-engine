@@ -4,7 +4,7 @@
 #include <glm/glm.hpp>
 #include "texture.h"
 
-enum class shader_material { Default, Unlit };
+enum class shader_material { Default, Unlit, Water };
 
 struct material {
     std::vector<texture> Textures;

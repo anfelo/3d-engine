@@ -7,6 +7,7 @@
 #include "context.h"
 #include "gui.h"
 #include "renderer.h"
+#include "resource_manager.h"
 #include "scene.h"
 
 void FramebufferSizeCallback(GLFWwindow *Window, int Width, int Height);
@@ -44,7 +45,7 @@ int main() {
         .ShadowbufferWidth = 1024,
         .ShadowbufferHeight = 1024,
         .DeltaTime = 0.0f,
-        .CurrentSceneIdx = 4,
+        .CurrentSceneIdx = 5,
     };
 
     if (Context.Window == NULL) {
@@ -80,18 +81,66 @@ int main() {
     scene Scene3 = Scene_Create();
     scene Scene4 = Scene_Create();
     scene Scene5 = Scene_Create();
+    scene Scene6 = Scene_Create();
 
     Context.Scenes.push_back(&Scene1);
     Context.Scenes.push_back(&Scene2);
     Context.Scenes.push_back(&Scene3);
     Context.Scenes.push_back(&Scene4);
     Context.Scenes.push_back(&Scene5);
+    Context.Scenes.push_back(&Scene6);
 
     Scene_BuildScene1(Scene1, Context.Camera);
     Scene_BuildScene2(Scene2, Context.Camera);
     Scene_BuildScene3(Scene3, Context.Camera);
     Scene_BuildScene4(Scene4, Context.Camera);
     Scene_BuildScene5(Scene5, Context.Camera);
+    Scene_BuildScene6(Scene6, Context.Camera);
+
+    // texture RefractionGuiTexture = {};
+    // RefractionGuiTexture.ID = Renderer.RefractionColorBuffer;
+    // RefractionGuiTexture.Type = GL_TEXTURE_2D;
+    // RefractionGuiTexture.Name = "diffuse";
+    // std::vector<texture> RefractionGuiTextures = {RefractionGuiTexture};
+    // material RefractionGuiTextureMaterial = {};
+    // Material_Create(RefractionGuiTextureMaterial);
+    // RefractionGuiTextureMaterial.Textures = RefractionGuiTextures;
+    //
+    // texture ReflectionGuiTexture = {};
+    // ReflectionGuiTexture.ID = Renderer.ReflectionColorBuffer;
+    // ReflectionGuiTexture.Type = GL_TEXTURE_2D;
+    // ReflectionGuiTexture.Name = "diffuse";
+    // std::vector<texture> ReflectionGuiTextures = {ReflectionGuiTexture};
+    // material ReflectionGuiTextureMaterial = {};
+    // Material_Create(ReflectionGuiTextureMaterial);
+    // ReflectionGuiTextureMaterial.Textures = ReflectionGuiTextures;
+    //
+    // mesh RefractionGuiTextureMesh;
+    // Mesh_CreateGuiQuad(&RefractionGuiTextureMesh,
+    // RefractionGuiTextureMaterial);
+    //
+    // mesh ReflectionGuiTextureMesh;
+    // Mesh_CreateGuiQuad(&ReflectionGuiTextureMesh,
+    // ReflectionGuiTextureMaterial);
+    //
+    // entity RefractionGuiEntity = {
+    //     .Type = entity_type::QuadMesh,
+    //     .Position = glm::vec3(0.0f, 0.0f, 0.0f),
+    //     .Scale = glm::vec3(300.0f, 200.0f, 0.0f),
+    //     .IsSelected = false,
+    //     .Mesh = RefractionGuiTextureMesh,
+    // };
+    //
+    // entity ReflectionGuiEntity = {
+    //     .Type = entity_type::QuadMesh,
+    //     .Position = glm::vec3(0.0f, 300.0f, 0.0f),
+    //     .Scale = glm::vec3(300.0f, 200.0f, 0.0f),
+    //     .IsSelected = false,
+    //     .Mesh = ReflectionGuiTextureMesh,
+    // };
+    //
+    // Scene_AddGuiTexture(Scene6, RefractionGuiEntity);
+    // Scene_AddGuiTexture(Scene6, ReflectionGuiEntity);
 
     // render loop
     // -----------

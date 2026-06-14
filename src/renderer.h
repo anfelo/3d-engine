@@ -89,6 +89,9 @@ struct uniform_locators {
     GLuint ViewUniformLoc;
     GLuint ProjectionUniformLoc;
 
+    GLuint TimeUniformLoc;
+    GLuint ClipPlaneUniformLoc;
+
     GLuint EntityColorUniformLoc;
     GLuint LightColorUniformLoc;
     GLuint LightPositionUniformLoc;
@@ -103,6 +106,7 @@ struct uniform_locators {
     GLuint ShadowMapUniformLoc;
     GLuint ShadowCubemapUniformLoc;
     GLuint FarPlaneUniformLoc;
+    GLuint NearPlaneUniformLoc;
     GLuint ShadowMatricesUniformLoc;
 
     GLuint HDRExposureUniformLoc;
@@ -111,6 +115,10 @@ struct uniform_locators {
     GLuint HorizontalUniformLoc;
     GLuint BloomEnabledUniformLoc;
     GLuint BloomTextureUniformLoc;
+
+    GLuint RefractionTextureUniformLoc;
+    GLuint ReflectionTextureUniformLoc;
+    GLuint DepthMapUniformLoc;
 
     material_uniforms Material;
 
@@ -136,6 +144,8 @@ struct renderer {
     shader_program SimpleDepthShaderProgram;
     shader_program CubemapDepthShaderProgram;
     shader_program BlurShaderProgram;
+    shader_program WaterShaderProgram;
+    shader_program GuiShaderProgram;
 
     // Framebuffer stuff
     GLuint FrameBufferVAO, FrameBufferVBO;
@@ -155,6 +165,21 @@ struct renderer {
     // Depth Cubemap stuff
     GLuint DepthCubemapFBO;
     GLuint DepthCubemapBuffer;
+
+    // Water Framebuffers stuff
+    GLuint RefractionFBO;
+    GLuint RefractionDepthBuffer;
+    GLuint RefractionColorBuffer;
+    GLuint RefractionRBO;
+    int RefractionFBOWidth;
+    int RefractionFBOHeight;
+
+    GLuint ReflectionFBO;
+    GLuint ReflectionDepthBuffer;
+    GLuint ReflectionColorBuffer;
+    GLuint ReflectionRBO;
+    int ReflectionFBOWidth;
+    int ReflectionFBOHeight;
 };
 
 renderer Renderer_Create(const context &Context);
@@ -164,11 +189,14 @@ void Renderer_ResizeFramebuffer(const renderer &Renderer, int ScreenWidth,
 shader_program Renderer_CreateShaderProgram(const char *VertexFile,
                                             const char *FragmentFile,
                                             const char *GeometryFile = nullptr);
+void Renderer_BindFramebuffer(const renderer &Renderer, GLuint FramebufferID,
+                              int Width, int Height);
 void Renderer_Draw(const renderer &Renderer, const scene &Scene,
                    const context &Context);
 void Renderer_DrawScene(const renderer &Renderer,
                         const shader_program &ShaderProgram, const scene &Scene,
-                        bool useEntityShader);
+                        bool useEntityShader = true);
+void Renderer_DrawSceneWater(const renderer &Renderer, const scene &Scene);
 void Renderer_DrawTriangle(const renderer &Renderer,
                            const shader_program &ShaderProgram,
                            glm::vec<3, float> position);
@@ -181,6 +209,9 @@ void Renderer_DrawCubeEntity(const renderer &Renderer,
 void Renderer_DrawModelEntity(const renderer &Renderer,
                               const shader_program &ShaderProgram,
                               const entity &Entity);
+void Renderer_DrawGuiEntity(const renderer &Renderer,
+                            const shader_program &ShaderProgram,
+                            const entity &Entity);
 void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
                         glm::vec<4, float> Color, float AmbientStrength,
                         float SpecularStrength);
@@ -191,6 +222,8 @@ void Renderer_SetSceneLightsUniforms(const renderer &Renderer,
 void Renderer_ClearBackground(float R, float G, float B, float Alpha);
 void Renderer_SetCameraUniforms(const renderer &Renderer, const camera &Camera,
                                 float ScreenWidth, float ScreenHeight);
+void Renderer_SetOtherUniforms(const renderer &Renderer,
+                               const context &Context);
 
 triangle_mesh Renderer_GetTriangleMesh();
 quad_mesh Renderer_GetQuadMesh();

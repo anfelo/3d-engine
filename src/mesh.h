@@ -35,6 +35,8 @@ void Mesh_Create(mesh *Mesh, std::vector<vertex> Vertices,
                  std::vector<GLuint> Indices, material Material);
 void Mesh_CreateCube(mesh *Mesh, material Material);
 void Mesh_CreateQuad(mesh *Mesh, material Material);
+void Mesh_CreateGrid(mesh *Mesh, material Material, int Resolution, float Size);
+void Mesh_CreateGuiQuad(mesh *Mesh, material Material);
 void Mesh_Setup(mesh *Mesh);
 void Mesh_Draw(GLuint ShaderID, const mesh &Mesh);
 void Mesh_DrawInstance(GLuint ShaderID, const mesh &Mesh,

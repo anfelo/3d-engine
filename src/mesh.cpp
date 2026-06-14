@@ -1,5 +1,6 @@
 #include "mesh.h"
 #include "glm/gtc/type_ptr.hpp"
+#include "texture.h"
 
 void Mesh_Create(mesh *Mesh, std::vector<vertex> Vertices,
                  std::vector<GLuint> Indices, material Material) {
@@ -69,6 +70,7 @@ void Mesh_Draw(GLuint ShaderID, const mesh &Mesh) {
     unsigned int SpecularNr = 1;
     unsigned int NormalNr = 1;
     unsigned int HeightNr = 1;
+    unsigned int DuDvNr = 1;
 
     glUniform1f(glGetUniformLocation(ShaderID, "u_material.shininess"),
                 Mesh.Material.Shininess);
@@ -101,6 +103,11 @@ void Mesh_Draw(GLuint ShaderID, const mesh &Mesh) {
         } else if (Name == "height") {
             // transfer unsigned int to string
             Number = std::to_string(HeightNr++);
+        } else if (Name == "dudv") {
+            Number = std::to_string(DuDvNr++);
+            // glUniform1i(glGetUniformLocation(ShaderID,
+            // "u_material.has_dudv"),
+            //             1);
         }
         // now set the sampler to the correct texture unit
         glUniform1i(
@@ -277,6 +284,67 @@ void Mesh_CreateQuad(mesh *Mesh, material Material) {
     };
 
     std::vector<GLuint> Indices = {0, 1, 2, 2, 3, 0};
+
+    Mesh_Create(Mesh, Vertices, Indices, Material);
+}
+
+void Mesh_CreateGuiQuad(mesh *Mesh, material Material) {
+    std::vector<vertex> Vertices = {
+        {glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f),
+         glm::vec2(0.0f, 0.0f)},
+        {glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f),
+         glm::vec2(1.0f, 0.0f)},
+        {glm::vec3(1.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f),
+         glm::vec2(1.0f, 1.0f)},
+        {glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f),
+         glm::vec2(0.0f, 1.0f)},
+    };
+
+    std::vector<GLuint> Indices = {0, 1, 2, 2, 3, 0};
+
+    Mesh_Create(Mesh, Vertices, Indices, Material);
+}
+
+void Mesh_CreateGrid(mesh *Mesh, material Material, int Resolution,
+                     float Size) {
+    std::vector<vertex> Vertices = {};
+    std::vector<GLuint> Indices = {};
+
+    if (Resolution <= 0) {
+        Resolution = 1;
+    }
+
+    Vertices.reserve((Resolution + 1) * (Resolution + 1));
+    Indices.reserve(Resolution * Resolution * 6);
+
+    // Vertices
+    for (int y = 0; y <= Resolution; ++y) {
+        for (int x = 0; x <= Resolution; x++) {
+            float XPos = ((float)x / Resolution - 0.5f) * Size;
+            float YPos = ((float)y / Resolution - 0.5f) * Size;
+
+            Vertices.push_back(
+                {glm::vec3(XPos, YPos, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f),
+                 glm::vec2((float)x / Resolution, (float)y / Resolution)});
+        }
+    }
+
+    for (int y = 0; y < Resolution; ++y) {
+        for (int x = 0; x < Resolution; ++x) {
+            GLuint TopLeft = y * (Resolution + 1) + x;
+            GLuint TopRight = TopLeft + 1;
+            GLuint BottomLeft = (y + 1) * (Resolution + 1) + x;
+            GLuint BottomRight = BottomLeft + 1;
+
+            Indices.push_back(TopLeft);
+            Indices.push_back(BottomLeft);
+            Indices.push_back(TopRight);
+
+            Indices.push_back(TopRight);
+            Indices.push_back(BottomLeft);
+            Indices.push_back(BottomRight);
+        }
+    }
 
     Mesh_Create(Mesh, Vertices, Indices, Material);
 }

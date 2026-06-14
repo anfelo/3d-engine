@@ -12,6 +12,7 @@ out vec4 FragPosLightSpace;
 uniform mat4 u_view;
 uniform mat4 u_projection;
 uniform mat4 u_light_space_matrix;
+uniform vec4 u_clip_plane;
 
 void main()
 {
@@ -23,6 +24,8 @@ void main()
     FragPosLightSpace = u_light_space_matrix * vec4(FragPos, 1.0);
 
     TexCoords = a_tex_coords;
+
+    gl_ClipDistance[0] = dot(vec4(FragPos, 1.0), u_clip_plane);
 
     gl_Position = u_projection * u_view * a_instance_matrix * vec4(a_pos, 1.0);
 }

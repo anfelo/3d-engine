@@ -26,6 +26,10 @@ void Scene_AddInstance(scene &Scene, entity &Entity) {
     Scene.Instances.push_back(Entity);
 }
 
+void Scene_AddGuiTexture(scene &Scene, entity &Entity) {
+    Scene.GuiTextures.push_back(Entity);
+}
+
 void Scene_AddLight(scene &Scene, light &Light) {
     Scene.Lights.push_back(Light);
 }
@@ -747,4 +751,145 @@ void Scene_BuildScene5(scene &Scene, camera &Camera) {
     }
     Scene_AddSpotLight(Scene, Camera.Position, false);
     Scene_AddDirectionalLight(Scene, false);
+}
+
+void Scene_BuildScene6(scene &Scene, camera &Camera) {
+    Scene.HDREnabled = true;
+
+    // Skybox
+    texture SkyboxCubemap;
+    std::vector<std::string> SkyboxFaces{
+        "./resources/textures/skybox/right.jpg",
+        "./resources/textures/skybox/left.jpg",
+        "./resources/textures/skybox/top.jpg",
+        "./resources/textures/skybox/bottom.jpg",
+        "./resources/textures/skybox/front.jpg",
+        "./resources/textures/skybox/back.jpg",
+    };
+    Texture_CreateCubemap(&SkyboxCubemap, SkyboxFaces);
+    std::vector<texture> SkyboxTextures = {SkyboxCubemap};
+
+    material SkyboxMaterial = {};
+    Material_Create(SkyboxMaterial);
+    SkyboxMaterial.Textures = SkyboxTextures;
+
+    mesh SkyboxMesh;
+    Mesh_CreateCube(&SkyboxMesh, SkyboxMaterial);
+
+    skybox Skybox = {.Mesh = SkyboxMesh};
+    Scene.Skybox = Skybox;
+
+    // Entities
+    texture ContainerDiffuseMap;
+    Texture_Create(&ContainerDiffuseMap, "./resources/textures/container.png",
+                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+    ContainerDiffuseMap.Name = "diffuse";
+    texture ContainerSpecularMap;
+    Texture_Create(&ContainerSpecularMap,
+                   "./resources/textures/container_specular.png", GL_TEXTURE_2D,
+                   GL_TEXTURE1, GL_RGBA, GL_UNSIGNED_BYTE);
+    ContainerSpecularMap.Name = "specular";
+
+    std::vector<texture> ContainerTextures = {ContainerDiffuseMap,
+                                              ContainerSpecularMap};
+
+    material ContainerMaterial = {};
+    Material_Create(ContainerMaterial);
+    ContainerMaterial.Textures = ContainerTextures;
+
+    mesh ContainerMesh;
+    Mesh_CreateCube(&ContainerMesh, ContainerMaterial);
+
+    entity Container1 = {
+        .Type = entity_type::CubeMesh,
+        .Position = glm::vec3(-0.3f, 0.0f, 0.4f),
+        .Scale = glm::vec3(0.4f),
+        .Rotation = glm::vec4(60.0f, 1.0f, 0.3f, 0.5f),
+        .IsSelected = false,
+        .Mesh = ContainerMesh,
+    };
+    entity Container2 = {
+        .Type = entity_type::CubeMesh,
+        .Position = glm::vec3(1.0f, -0.8f, 1.0f),
+        .Scale = glm::vec3(0.4f),
+        .Rotation = glm::vec4(0.0f, 1.0f, 0.3f, 0.5f),
+        .IsSelected = false,
+        .Mesh = ContainerMesh,
+    };
+    entity Container3 = {
+        .Type = entity_type::CubeMesh,
+        .Position = glm::vec3(0.0f, -1.0f, 0.0f),
+        .Scale = glm::vec3(1.0f),
+        .Rotation = glm::vec4(60.0f, 1.0f, 0.3f, 0.5f),
+        .IsSelected = false,
+        .Mesh = ContainerMesh,
+    };
+    entity Container4 = {
+        .Type = entity_type::CubeMesh,
+        .Position = glm::vec3(0.0f, 2.0f, 0.0f),
+        .Scale = glm::vec3(0.6f),
+        .Rotation = glm::vec4(60.0f, 1.0f, 0.3f, 0.5f),
+        .IsSelected = false,
+        .Mesh = ContainerMesh,
+    };
+
+    Scene_AddEntity(Scene, Container1);
+    Scene_AddEntity(Scene, Container2);
+    Scene_AddEntity(Scene, Container3);
+    Scene_AddEntity(Scene, Container4);
+
+    // Water
+    texture WaterDuDvMap;
+    Texture_Create(&WaterDuDvMap, "./resources/textures/water_dudv.png",
+                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+    WaterDuDvMap.Name = "dudv";
+    texture WaterNormalMap;
+    Texture_Create(&WaterNormalMap, "./resources/textures/water_normal.png",
+                   GL_TEXTURE_2D, GL_TEXTURE1, GL_RGBA, GL_UNSIGNED_BYTE);
+    WaterNormalMap.Name = "normal";
+
+    std::vector<texture> WaterTextures = {WaterDuDvMap, WaterNormalMap};
+
+    material WaterMaterial = {};
+    Material_Create(WaterMaterial);
+    WaterMaterial.Textures = WaterTextures;
+    WaterMaterial.Shininess = 16.0f;
+    WaterMaterial.ShaderMaterial = shader_material::Water;
+    WaterMaterial.Color = glm::vec4(1.0f, 0.5f, 0.31f, 1.0f);
+
+    mesh WaterMesh;
+    Mesh_CreateGrid(&WaterMesh, WaterMaterial, 100, 10.0f);
+
+    entity Water = {
+        .Type = entity_type::QuadMesh,
+        .Position = glm::vec3(0.0f, 0.0f, 0.0f),
+        .Scale = glm::vec3(1.0f),
+        .Rotation = glm::vec4(-90.0f, 1.0f, 0.0f, 0.0f),
+        .IsSelected = false,
+        .Mesh = WaterMesh,
+    };
+
+    Scene_AddEntity(Scene, Water);
+
+    glm::vec3 PointLightPositions[] = {
+        glm::vec3(0.0f, 0.0f, 0.9f),
+        glm::vec3(-0.2f, 0.6f, 0.0f),
+        glm::vec3(1.4f, -0.6f, 0.6f),
+        glm::vec3(1.0f, 0.2f, -0.6f),
+    };
+    glm::vec4 PointLightColors[] = {
+        glm::vec4(5.0f, 5.0f, 5.0f, 1.0f),
+        glm::vec4(10.0f, 0.0f, 0.0f, 1.0f),
+        glm::vec4(0.0f, 0.0f, 15.0f, 1.0f),
+        glm::vec4(0.0f, 5.0f, 0.0f, 1.0f),
+    };
+    size_t PointLightPositionsLength =
+        sizeof(PointLightPositions) / sizeof(PointLightPositions[0]);
+
+    for (size_t i = 0; i < PointLightPositionsLength; i++) {
+        Scene_AddPointLight(Scene, PointLightPositions[i], PointLightColors[i],
+                            false, false);
+    }
+    Scene_AddSpotLight(Scene, Camera.Position, false);
+    Scene_AddDirectionalLight(Scene, true);
 }

@@ -13,6 +13,7 @@ struct scene {
     std::vector<entity> Entities;
     std::vector<light> Lights;
     std::vector<entity> Instances;
+    std::vector<entity> GuiTextures;
 
     int Effect;
 
@@ -28,6 +29,7 @@ scene Scene_Create();
 void Scene_Destroy(scene &Scene);
 void Scene_AddEntity(scene &Scene, entity &Entity);
 void Scene_AddInstance(scene &Scene, entity &Entity);
+void Scene_AddGuiTexture(scene &Scene, entity &Entity);
 void Scene_AddLight(scene &Scene, light &Light);
 void Scene_AddPointLight(scene &Scene, glm::vec3 Position, glm::vec4 Color,
                          bool IsEnabled, bool ShowDebug);
@@ -40,5 +42,6 @@ void Scene_BuildScene2(scene &Scene, camera &Camera);
 void Scene_BuildScene3(scene &Scene, camera &Camera);
 void Scene_BuildScene4(scene &Scene, camera &Camera);
 void Scene_BuildScene5(scene &Scene, camera &Camera);
+void Scene_BuildScene6(scene &Scene, camera &Camera);
 
 #endif

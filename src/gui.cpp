@@ -60,7 +60,8 @@ void Gui_Draw(context &Context) {
 
     // Scenes
     // TODO: Make this dynamic for all the scenes that get added to the context
-    const char *Scenes[] = {"Scene1", "Scene2", "Scene3", "Scene4", "Scene5"};
+    const char *Scenes[] = {"Scene1", "Scene2", "Scene3",
+                            "Scene4", "Scene5", "Scene6"};
     ImGui::Begin("Scenes");
     ImGui::Combo("##scenes", &Context.CurrentSceneIdx, Scenes,
                  IM_ARRAYSIZE(Scenes));

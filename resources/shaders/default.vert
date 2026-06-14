@@ -14,6 +14,7 @@ uniform mat4 u_projection;
 uniform vec2 u_tex_repeat;
 uniform mat4 u_light_space_matrix;
 uniform bool u_reverse_normal;
+uniform vec4 u_clip_plane;
 
 void main()
 {
@@ -30,6 +31,8 @@ void main()
 
     TexCoords = vec2(a_tex_coords.x * u_tex_repeat.x,
                      a_tex_coords.y * u_tex_repeat.y);
+
+    gl_ClipDistance[0] = dot(vec4(FragPos, 1.0), u_clip_plane);
 
     gl_Position = u_projection * u_view * u_model * vec4(a_pos, 1.0);
 }

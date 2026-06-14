@@ -72,8 +72,20 @@ renderer Renderer_Create(const context &Context) {
                                      "./resources/shaders/cube_depth.gs");
     Renderer.BlurShaderProgram = Renderer_CreateShaderProgram(
         "./resources/shaders/blur.vert", "./resources/shaders/blur.frag");
+    Renderer.WaterShaderProgram = Renderer_CreateShaderProgram(
+        "./resources/shaders/water.vert", "./resources/shaders/water.frag");
+    Renderer.GuiShaderProgram = Renderer_CreateShaderProgram(
+        "./resources/shaders/gui.vert", "./resources/shaders/gui.frag");
+
     glUseProgram(Renderer.BlurShaderProgram.ID);
     glUniform1i(Renderer.BlurShaderProgram.Uniforms.ScreenTextureUniformLoc, 0);
+
+    glUseProgram(Renderer.WaterShaderProgram.ID);
+    glUniform1i(
+        Renderer.WaterShaderProgram.Uniforms.RefractionTextureUniformLoc, 2);
+    glUniform1i(
+        Renderer.WaterShaderProgram.Uniforms.ReflectionTextureUniformLoc, 3);
+    glUniform1i(Renderer.WaterShaderProgram.Uniforms.DepthMapUniformLoc, 4);
 
     // ### Screen Quad ###
     // Used for the framebuffer post-processing
@@ -231,6 +243,77 @@ renderer Renderer_Create(const context &Context) {
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    // ### Water Buffers Configuration ###
+    // Refraction
+    Renderer.RefractionFBOWidth = 1280;
+    Renderer.RefractionFBOHeight = 720;
+    glGenFramebuffers(1, &Renderer.RefractionFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, Renderer.RefractionFBO);
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    glGenTextures(1, &Renderer.RefractionColorBuffer);
+    glBindTexture(GL_TEXTURE_2D, Renderer.RefractionColorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Renderer.RefractionFBOWidth,
+                 Renderer.RefractionFBOHeight, 0, GL_RGB, GL_UNSIGNED_BYTE,
+                 NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                           Renderer.RefractionColorBuffer, 0);
+
+    glGenTextures(1, &Renderer.RefractionDepthBuffer);
+    glBindTexture(GL_TEXTURE_2D, Renderer.RefractionDepthBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24,
+                 Renderer.RefractionFBOWidth, Renderer.RefractionFBOHeight, 0,
+                 GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                           Renderer.RefractionDepthBuffer, 0);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        std::cout
+            << "ERROR::FRAMEBUFFER:: Refraction framebuffer is not complete!"
+            << std::endl;
+    }
+
+    // Reflection
+    Renderer.ReflectionFBOWidth = 320;
+    Renderer.ReflectionFBOHeight = 180;
+    glGenFramebuffers(1, &Renderer.ReflectionFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, Renderer.ReflectionFBO);
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    glGenTextures(1, &Renderer.ReflectionColorBuffer);
+    glBindTexture(GL_TEXTURE_2D, Renderer.ReflectionColorBuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Renderer.ReflectionFBOWidth,
+                 Renderer.ReflectionFBOHeight, 0, GL_RGB, GL_UNSIGNED_BYTE,
+                 NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                           Renderer.ReflectionColorBuffer, 0);
+
+    glGenRenderbuffers(1, &Renderer.ReflectionRBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, Renderer.ReflectionRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24,
+                          Renderer.ReflectionFBOWidth,
+                          Renderer.ReflectionFBOHeight);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                              GL_RENDERBUFFER, Renderer.ReflectionRBO);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        std::cout
+            << "ERROR::FRAMEBUFFER:: Reflection framebuffer is not complete!"
+            << std::endl;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     return Renderer;
 }
 
@@ -244,6 +327,14 @@ void Renderer_Destroy(renderer &Renderer) {
     glDeleteFramebuffers(1, &Renderer.FrameBuffer);
     glDeleteTextures(1, &Renderer.TextureColorBuffer);
     glDeleteRenderbuffers(1, &Renderer.RBO);
+
+    glDeleteFramebuffers(1, &Renderer.RefractionFBO);
+    glDeleteTextures(1, &Renderer.RefractionColorBuffer);
+    glDeleteTextures(1, &Renderer.RefractionDepthBuffer);
+
+    glDeleteFramebuffers(1, &Renderer.ReflectionFBO);
+    glDeleteTextures(1, &Renderer.ReflectionColorBuffer);
+    glDeleteRenderbuffers(1, &Renderer.ReflectionRBO);
 }
 
 void Renderer_ResizeFramebuffer(const renderer &Renderer, int ScreenWidth,
@@ -361,6 +452,11 @@ shader_program Renderer_CreateShaderProgram(const char *VertexFile,
     ShaderProgram.Uniforms.ProjectionUniformLoc =
         glGetUniformLocation(ShaderProgram.ID, "u_projection");
 
+    ShaderProgram.Uniforms.TimeUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_time");
+    ShaderProgram.Uniforms.ClipPlaneUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_clip_plane");
+
     // LightSpace (for shadow mapping)
     ShaderProgram.Uniforms.LightSpaceMatrixUniformLoc =
         glGetUniformLocation(ShaderProgram.ID, "u_light_space_matrix");
@@ -371,6 +467,8 @@ shader_program Renderer_CreateShaderProgram(const char *VertexFile,
 
     ShaderProgram.Uniforms.FarPlaneUniformLoc =
         glGetUniformLocation(ShaderProgram.ID, "u_far_plane");
+    ShaderProgram.Uniforms.NearPlaneUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_near_plane");
     ShaderProgram.Uniforms.ShadowMatricesUniformLoc =
         glGetUniformLocation(ShaderProgram.ID, "u_shadow_matrices");
 
@@ -506,6 +604,13 @@ shader_program Renderer_CreateShaderProgram(const char *VertexFile,
     ShaderProgram.Uniforms.EffectUniformLoc =
         glGetUniformLocation(ShaderProgram.ID, "u_effect");
 
+    ShaderProgram.Uniforms.RefractionTextureUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_refraction_texture");
+    ShaderProgram.Uniforms.ReflectionTextureUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_reflection_texture");
+    ShaderProgram.Uniforms.DepthMapUniformLoc =
+        glGetUniformLocation(ShaderProgram.ID, "u_depth_map");
+
     return ShaderProgram;
 }
 
@@ -514,9 +619,27 @@ void Renderer_ClearBackground(float R, float G, float B, float Alpha) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 }
 
+void Renderer_BindFramebuffer(const renderer &Renderer, GLuint FramebufferID,
+                              int Width, int Height) {
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, FramebufferID);
+    glViewport(0, 0, Width, Height);
+}
+
+void Renderer_DrawSceneWater(const renderer &Renderer, const scene &Scene) {
+    for (entity Entity : Scene.Entities) {
+        if (Entity.Mesh.Material.ShaderMaterial != shader_material::Water) {
+            continue;
+        }
+
+        Renderer_DrawQuadEntity(Renderer, Renderer.WaterShaderProgram, Entity);
+    }
+}
+
 void Renderer_DrawScene(const renderer &Renderer,
                         const shader_program &ShaderProgram, const scene &Scene,
-                        bool useEntityShader = true) {
+                        bool useEntityShader) {
+
     // Entities
     for (entity Entity : Scene.Entities) {
         shader_program Shader = ShaderProgram;
@@ -527,6 +650,10 @@ void Renderer_DrawScene(const renderer &Renderer,
                 break;
             case shader_material::Unlit:
                 Shader = Renderer.UnlitShaderProgram;
+                break;
+            case shader_material::Water:
+                // INFO: Water is drawn through a different method
+                continue;
                 break;
             }
         }
@@ -565,6 +692,8 @@ void Renderer_DrawScene(const renderer &Renderer,
                     break;
                 case shader_material::Unlit:
                     Shader = Renderer.UnlitShaderProgram;
+                    break;
+                default:
                     break;
                 }
 
@@ -676,6 +805,78 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CLIP_DISTANCE0);
+    Renderer_BindFramebuffer(Renderer, Renderer.RefractionFBO,
+                             Renderer.RefractionFBOWidth,
+                             Renderer.RefractionFBOHeight);
+    glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glm::vec4 RefractionClipPlane = glm::vec4(0.0f, -1.0f, 0.0f, 0.01f);
+    glUseProgram(Renderer.ShaderProgram.ID);
+    glUniform4fv(Renderer.ShaderProgram.Uniforms.ClipPlaneUniformLoc, 1,
+                 glm::value_ptr(RefractionClipPlane));
+    glUseProgram(Renderer.UnlitShaderProgram.ID);
+    glUniform4fv(Renderer.UnlitShaderProgram.Uniforms.ClipPlaneUniformLoc, 1,
+                 glm::value_ptr(RefractionClipPlane));
+    glUseProgram(Renderer.InstanceShaderProgram.ID);
+    glUniform4fv(Renderer.InstanceShaderProgram.Uniforms.ClipPlaneUniformLoc, 1,
+                 glm::value_ptr(RefractionClipPlane));
+    glUseProgram(Renderer.WaterShaderProgram.ID);
+    glUniform4fv(Renderer.WaterShaderProgram.Uniforms.ClipPlaneUniformLoc, 1,
+                 glm::value_ptr(RefractionClipPlane));
+    Renderer_SetCameraUniforms(Renderer, Context.Camera, Context.ScreenWidth,
+                               Context.ScreenHeight);
+    Renderer_SetSceneLightsUniforms(Renderer, Renderer.ShaderProgram, Scene,
+                                    Context.Camera);
+    Renderer_SetOtherUniforms(Renderer, Context);
+
+    Renderer_DrawScene(Renderer, Renderer.ShaderProgram, Scene);
+    Renderer_DrawSkybox(Renderer, Scene.Skybox);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, Context.FramebufferWidth, Context.FramebufferHeight);
+
+    Renderer_BindFramebuffer(Renderer, Renderer.ReflectionFBO,
+                             Renderer.ReflectionFBOWidth,
+                             Renderer.ReflectionFBOHeight);
+    glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glm::vec4 ReflectionClipPlane = glm::vec4(0.0f, 1.0f, 0.0f, -0.01f);
+    glUseProgram(Renderer.ShaderProgram.ID);
+    glUniform4fv(Renderer.ShaderProgram.Uniforms.ClipPlaneUniformLoc, 1,
+                 glm::value_ptr(ReflectionClipPlane));
+    glUseProgram(Renderer.UnlitShaderProgram.ID);
+    glUniform4fv(Renderer.UnlitShaderProgram.Uniforms.ClipPlaneUniformLoc, 1,
+                 glm::value_ptr(ReflectionClipPlane));
+    glUseProgram(Renderer.InstanceShaderProgram.ID);
+    glUniform4fv(Renderer.InstanceShaderProgram.Uniforms.ClipPlaneUniformLoc, 1,
+                 glm::value_ptr(ReflectionClipPlane));
+    glUseProgram(Renderer.WaterShaderProgram.ID);
+    glUniform4fv(Renderer.WaterShaderProgram.Uniforms.ClipPlaneUniformLoc, 1,
+                 glm::value_ptr(ReflectionClipPlane));
+
+    // Invert Camera position and pitch
+    float Distance = 2 * (Context.Camera.Position.y); // - WaterHeight
+    glm::vec3 NewPosition = glm::vec3(Context.Camera.Position.x,
+                                      Context.Camera.Position.y - Distance,
+                                      Context.Camera.Position.z);
+    camera OtherCamera =
+        Camera_Create(NewPosition, Context.Camera.Up, Context.Camera.Yaw,
+                      -Context.Camera.Pitch);
+    Renderer_SetCameraUniforms(Renderer, OtherCamera, Context.ScreenWidth,
+                               Context.ScreenHeight);
+    Renderer_SetSceneLightsUniforms(Renderer, Renderer.ShaderProgram, Scene,
+                                    Context.Camera);
+    Renderer_SetOtherUniforms(Renderer, Context);
+
+    Renderer_DrawScene(Renderer, Renderer.ShaderProgram, Scene);
+    Renderer_DrawSkybox(Renderer, Scene.Skybox);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, Context.FramebufferWidth, Context.FramebufferHeight);
+
     // 2st. Pass: Draw the scene to the framebuffer
     // bind to framebuffer and draw scene as we normally would to color
     // texture
@@ -690,6 +891,22 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     glClearStencil(0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+    glDisable(GL_CLIP_DISTANCE0);
+    // INFO: Hack when disabling the clip_distance doesn't work
+    glm::vec4 NoClipPlane = glm::vec4(0.0f, 1.0f, 0.0f, 10000.0f);
+    glUseProgram(Renderer.ShaderProgram.ID);
+    glUniform4fv(Renderer.ShaderProgram.Uniforms.ClipPlaneUniformLoc, 1,
+                 glm::value_ptr(NoClipPlane));
+    glUseProgram(Renderer.UnlitShaderProgram.ID);
+    glUniform4fv(Renderer.UnlitShaderProgram.Uniforms.ClipPlaneUniformLoc, 1,
+                 glm::value_ptr(NoClipPlane));
+    glUseProgram(Renderer.InstanceShaderProgram.ID);
+    glUniform4fv(Renderer.InstanceShaderProgram.Uniforms.ClipPlaneUniformLoc, 1,
+                 glm::value_ptr(NoClipPlane));
+    glUseProgram(Renderer.WaterShaderProgram.ID);
+    glUniform4fv(Renderer.WaterShaderProgram.Uniforms.ClipPlaneUniformLoc, 1,
+                 glm::value_ptr(NoClipPlane));
+
     glUseProgram(Renderer.ShaderProgram.ID);
 
     // Sets the view & projection uniforms for all the programs
@@ -698,6 +915,8 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
 
     Renderer_SetSceneLightsUniforms(Renderer, Renderer.ShaderProgram, Scene,
                                     Context.Camera);
+
+    Renderer_SetOtherUniforms(Renderer, Context);
 
     // Directional Shadow Map
     glActiveTexture(GL_TEXTURE3);
@@ -716,6 +935,26 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
                  &FarPlane);
 
     Renderer_DrawScene(Renderer, Renderer.ShaderProgram, Scene);
+
+    // TODO: Refactor the Water Renderer
+    glUseProgram(Renderer.WaterShaderProgram.ID);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, Renderer.RefractionColorBuffer);
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, Renderer.ReflectionColorBuffer);
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, Renderer.RefractionDepthBuffer);
+
+    NearPlane = 0.1f;
+    FarPlane = 1000.0f;
+    glUniform1f(Renderer.WaterShaderProgram.Uniforms.NearPlaneUniformLoc,
+                NearPlane);
+    glUniform1f(Renderer.WaterShaderProgram.Uniforms.FarPlaneUniformLoc,
+                FarPlane);
+    Renderer_SetSceneLightsUniforms(Renderer, Renderer.WaterShaderProgram,
+                                    Scene, Context.Camera);
+    glUseProgram(Renderer.ShaderProgram.ID);
+    Renderer_DrawSceneWater(Renderer, Scene);
 
     // TODO: Keeping the instances out of the shadow pass for now.
     if (Scene.Instances.size() > 0) {
@@ -772,6 +1011,22 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
         if (FirstIteration) {
             FirstIteration = false;
         }
+    }
+
+    Renderer_BindFramebuffer(Renderer, Renderer.FrameBuffer,
+                             Context.FramebufferWidth,
+                             Context.FramebufferHeight);
+    // Draw all GuiTextures into the scene framebuffer before it is
+    // presented.
+    glUseProgram(Renderer.GuiShaderProgram.ID);
+    glm::vec2 ScreenSize =
+        glm::vec2(Context.FramebufferWidth, Context.FramebufferHeight);
+    glUniform2fv(
+        glGetUniformLocation(Renderer.GuiShaderProgram.ID, "u_screen_size"), 1,
+        glm::value_ptr(ScreenSize));
+    for (unsigned int i = 0; i < Scene.GuiTextures.size(); ++i) {
+        Renderer_DrawGuiEntity(Renderer, Renderer.GuiShaderProgram,
+                               Scene.GuiTextures.at(i));
     }
 
     // 3th. Pass: Draw whatever is in the Framebuffer to the screen quad
@@ -851,8 +1106,28 @@ void Renderer_DrawQuadEntity(const renderer &Renderer,
         glm::vec3(Entity.Rotation[1], Entity.Rotation[2], Entity.Rotation[3]);
     Model = glm::rotate(Model, glm::radians(Entity.Rotation[0]), RotationVec);
 
+    glm::vec4 Color = Entity.Mesh.Material.Color;
+    glm::vec3 QuadColor = glm::vec3(Color[0], Color[1], Color[2]);
+    glUniform3fv(ShaderProgram.Uniforms.EntityColorUniformLoc, 1,
+                 glm::value_ptr(QuadColor));
+
     glUniformMatrix4fv(ShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
                        glm::value_ptr(Model));
+
+    Mesh_Draw(ShaderProgram.ID, Entity.Mesh);
+    glEnable(GL_CULL_FACE);
+}
+
+void Renderer_DrawGuiEntity(const renderer &Renderer,
+                            const shader_program &ShaderProgram,
+                            const entity &Entity) {
+    glDisable(GL_CULL_FACE);
+    glUseProgram(ShaderProgram.ID);
+
+    glUniform2fv(glGetUniformLocation(ShaderProgram.ID, "u_position"), 1,
+                 glm::value_ptr(Entity.Position));
+    glUniform2fv(glGetUniformLocation(ShaderProgram.ID, "u_size"), 1,
+                 glm::value_ptr(Entity.Scale));
 
     Mesh_Draw(ShaderProgram.ID, Entity.Mesh);
     glEnable(GL_CULL_FACE);
@@ -1125,6 +1400,14 @@ void Renderer_SetSceneLightsUniforms(const renderer &Renderer,
     }
 }
 
+void Renderer_SetOtherUniforms(const renderer &Renderer,
+                               const context &Context) {
+    glUseProgram(Renderer.WaterShaderProgram.ID);
+    glUniform1f(Renderer.WaterShaderProgram.Uniforms.TimeUniformLoc,
+                Context.LastFrame);
+    glUseProgram(Renderer.ShaderProgram.ID);
+}
+
 void Renderer_SetCameraUniforms(const renderer &Renderer, const camera &Camera,
                                 float ScreenWidth, float ScreenHeight) {
     glm::mat4 View = Camera_GetViewMatrix(Camera);
@@ -1185,6 +1468,18 @@ void Renderer_SetCameraUniforms(const renderer &Renderer, const camera &Camera,
         glm::value_ptr(Projection));
 
     glUniform3fv(Renderer.UnlitShaderProgram.Uniforms.ViewPositionUniformLoc, 1,
+                 glm::value_ptr(Camera.Position));
+
+    // Set view & projection for unlit shader
+    glUseProgram(Renderer.WaterShaderProgram.ID);
+    // Sets the uniform value
+    glUniformMatrix4fv(Renderer.WaterShaderProgram.Uniforms.ViewUniformLoc, 1,
+                       GL_FALSE, glm::value_ptr(View));
+    glUniformMatrix4fv(
+        Renderer.WaterShaderProgram.Uniforms.ProjectionUniformLoc, 1, GL_FALSE,
+        glm::value_ptr(Projection));
+
+    glUniform3fv(Renderer.WaterShaderProgram.Uniforms.ViewPositionUniformLoc, 1,
                  glm::value_ptr(Camera.Position));
 
     // Set view & projection for skybox shader
