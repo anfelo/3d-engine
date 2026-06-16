@@ -72,6 +72,8 @@ int main() {
 
     gui Gui = Gui_Create(Context);
     renderer Renderer = Renderer_Create(Context);
+    ResourceManager_LoadTextures(Renderer.ResourceManager);
+    ResourceManager_LoadModels(Renderer.ResourceManager);
     camera Camera = Camera_Create(glm::vec3(0.0f, 0.0f, 3.0f),
                                   glm::vec3(0.0f, 1.0f, 0.0f), YAW, PITCH);
     Context.Camera = Camera;
@@ -90,12 +92,12 @@ int main() {
     Context.Scenes.push_back(&Scene5);
     Context.Scenes.push_back(&Scene6);
 
-    Scene_BuildScene1(Scene1, Context.Camera);
-    Scene_BuildScene2(Scene2, Context.Camera);
-    Scene_BuildScene3(Scene3, Context.Camera);
-    Scene_BuildScene4(Scene4, Context.Camera);
-    Scene_BuildScene5(Scene5, Context.Camera);
-    Scene_BuildScene6(Scene6, Context.Camera);
+    Scene_BuildScene1(Scene1, Renderer.ResourceManager, Context.Camera);
+    Scene_BuildScene2(Scene2, Renderer.ResourceManager, Context.Camera);
+    Scene_BuildScene3(Scene3, Renderer.ResourceManager, Context.Camera);
+    Scene_BuildScene4(Scene4, Renderer.ResourceManager, Context.Camera);
+    Scene_BuildScene5(Scene5, Renderer.ResourceManager, Context.Camera);
+    Scene_BuildScene6(Scene6, Renderer.ResourceManager, Context.Camera);
 
     // texture RefractionGuiTexture = {};
     // RefractionGuiTexture.ID = Renderer.RefractionColorBuffer;

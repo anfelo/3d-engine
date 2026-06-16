@@ -3,6 +3,7 @@
 #include "camera.h"
 #include "entity.h"
 #include "material.h"
+#include "resource_manager.h"
 
 scene Scene_Create() {
     scene Scene = {};
@@ -107,19 +108,12 @@ void Scene_AddSpotLight(scene &Scene, glm::vec3 Position,
     Scene_AddLight(Scene, SpotLight);
 }
 
-void Scene_BuildScene1(scene &Scene, camera &Camera) {
+void Scene_BuildScene1(scene &Scene, resource_manager &ResourceManager,
+                       camera &Camera) {
     // Skybox
-    texture SkyboxCubemap;
-    std::vector<std::string> SkyboxFaces{
-        "./resources/textures/skybox/right.jpg",
-        "./resources/textures/skybox/left.jpg",
-        "./resources/textures/skybox/top.jpg",
-        "./resources/textures/skybox/bottom.jpg",
-        "./resources/textures/skybox/front.jpg",
-        "./resources/textures/skybox/back.jpg",
-    };
-    Texture_CreateCubemap(&SkyboxCubemap, SkyboxFaces);
-    std::vector<texture> SkyboxTextures = {SkyboxCubemap};
+    texture *SkyboxCubemap =
+        ResourceManager_GetTexture(ResourceManager, "defualt_skybox");
+    std::vector<texture *> SkyboxTextures = {SkyboxCubemap};
 
     material SkyboxMaterial = {};
     Material_Create(SkyboxMaterial);
@@ -132,18 +126,13 @@ void Scene_BuildScene1(scene &Scene, camera &Camera) {
     Scene.Skybox = Skybox;
 
     // Entities
-    texture ContainerDiffuseMap;
-    Texture_Create(&ContainerDiffuseMap, "./resources/textures/container.png",
-                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
-    ContainerDiffuseMap.Name = "diffuse";
-    texture ContainerSpecularMap;
-    Texture_Create(&ContainerSpecularMap,
-                   "./resources/textures/container_specular.png", GL_TEXTURE_2D,
-                   GL_TEXTURE1, GL_RGBA, GL_UNSIGNED_BYTE);
-    ContainerSpecularMap.Name = "specular";
+    texture *ContainerDiffuseMap =
+        ResourceManager_GetTexture(ResourceManager, "container_diffuse");
+    texture *ContainerSpecularMap =
+        ResourceManager_GetTexture(ResourceManager, "container_specular");
 
-    std::vector<texture> ContainerTextures = {ContainerDiffuseMap,
-                                              ContainerSpecularMap};
+    std::vector<texture *> ContainerTextures = {ContainerDiffuseMap,
+                                                ContainerSpecularMap};
 
     material ContainerMaterial = {};
     Material_Create(ContainerMaterial);
@@ -164,18 +153,12 @@ void Scene_BuildScene1(scene &Scene, camera &Camera) {
 
     Scene_AddEntity(Scene, Container);
 
-    texture RockDiffuseMap;
-    Texture_Create(&RockDiffuseMap,
-                   "./resources/textures/dry_riverbed_rock_diff.png",
-                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
-    RockDiffuseMap.Name = "diffuse";
-    texture RockNormalMap;
-    Texture_Create(&RockNormalMap,
-                   "./resources/textures/dry_riverbed_rock_normal.png",
-                   GL_TEXTURE_2D, GL_TEXTURE2, GL_RGBA, GL_UNSIGNED_BYTE);
-    RockNormalMap.Name = "normal";
+    texture *RockDiffuseMap =
+        ResourceManager_GetTexture(ResourceManager, "rock_diffuse");
+    texture *RockNormalMap =
+        ResourceManager_GetTexture(ResourceManager, "rock_normal");
 
-    std::vector<texture> RockTextures = {RockDiffuseMap, RockNormalMap};
+    std::vector<texture *> RockTextures = {RockDiffuseMap, RockNormalMap};
 
     mesh RockMesh = ContainerMesh;
     RockMesh.Material.Textures = RockTextures;
@@ -192,9 +175,8 @@ void Scene_BuildScene1(scene &Scene, camera &Camera) {
 
     Scene_AddEntity(Scene, Rock);
 
-    model BackpackModel;
-    Model_Create(&BackpackModel, "./resources/models/backpack/backpack.obj",
-                 false);
+    model *BackpackModel =
+        ResourceManager_GetModel(ResourceManager, "backpack_model");
 
     entity Backpack = {
         .Type = entity_type::Model,
@@ -207,8 +189,8 @@ void Scene_BuildScene1(scene &Scene, camera &Camera) {
 
     Scene_AddEntity(Scene, Backpack);
 
-    model AsteroidModel;
-    Model_Create(&AsteroidModel, "./resources/models/rock/rock.obj", false);
+    model *AsteroidModel =
+        ResourceManager_GetModel(ResourceManager, "rock_model");
 
     entity Asteroid = {
         .Type = entity_type::Model,
@@ -284,8 +266,8 @@ void Scene_BuildScene1(scene &Scene, camera &Camera) {
     glBufferData(GL_ARRAY_BUFFER, AsteroidsNum * sizeof(glm::mat4),
                  &ModelMatrices[0], GL_STATIC_DRAW);
 
-    for (unsigned int i = 0; i < AsteroidModel.Meshes.size(); i++) {
-        unsigned int VAO = AsteroidModel.Meshes[i].VAO;
+    for (unsigned int i = 0; i < AsteroidModel->Meshes.size(); i++) {
+        unsigned int VAO = AsteroidModel->Meshes[i].VAO;
         glBindVertexArray(VAO);
         // set attribute pointers for matrix (4 times vec4)
         glEnableVertexAttribArray(3);
@@ -309,11 +291,10 @@ void Scene_BuildScene1(scene &Scene, camera &Camera) {
         glBindVertexArray(0);
     }
 
-    texture GrassTexture;
-    Texture_Create(&GrassTexture, "./resources/textures/grass.png",
-                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+    texture *GrassTexture =
+        ResourceManager_GetTexture(ResourceManager, "grass_diffuse");
 
-    std::vector<texture> GrassTextures = {GrassTexture};
+    std::vector<texture *> GrassTextures = {GrassTexture};
 
     std::vector<glm::vec3> Vegetation;
     Vegetation.push_back(glm::vec3(-1.5f, 0.0f, -0.48f));
@@ -341,12 +322,10 @@ void Scene_BuildScene1(scene &Scene, camera &Camera) {
         Scene_AddEntity(Scene, Grass);
     }
 
-    texture WindowTexture;
-    Texture_Create(&WindowTexture,
-                   "./resources/textures/blending_transparent_window.png",
-                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+    texture *WindowTexture =
+        ResourceManager_GetTexture(ResourceManager, "window_diffuse");
 
-    std::vector<texture> WindowTextures = {WindowTexture};
+    std::vector<texture *> WindowTextures = {WindowTexture};
 
     std::vector<glm::vec3> Windows;
     Windows.push_back(glm::vec3(-1.5f, 0.0f, -0.48f));
@@ -398,19 +377,12 @@ void Scene_BuildScene1(scene &Scene, camera &Camera) {
     Scene_AddDirectionalLight(Scene);
 }
 
-void Scene_BuildScene2(scene &Scene, camera &Camera) {
+void Scene_BuildScene2(scene &Scene, resource_manager &ResourceManager,
+                       camera &Camera) {
     // Skybox
-    texture SkyboxCubemap;
-    std::vector<std::string> SkyboxFaces{
-        "./resources/textures/night_skybox/right.png",
-        "./resources/textures/night_skybox/left.png",
-        "./resources/textures/night_skybox/top.png",
-        "./resources/textures/night_skybox/bottom.png",
-        "./resources/textures/night_skybox/front.png",
-        "./resources/textures/night_skybox/back.png",
-    };
-    Texture_CreateCubemap(&SkyboxCubemap, SkyboxFaces);
-    std::vector<texture> SkyboxTextures = {SkyboxCubemap};
+    texture *SkyboxCubemap =
+        ResourceManager_GetTexture(ResourceManager, "night_skybox");
+    std::vector<texture *> SkyboxTextures = {SkyboxCubemap};
 
     material SkyboxMaterial = {};
     Material_Create(SkyboxMaterial);
@@ -422,12 +394,10 @@ void Scene_BuildScene2(scene &Scene, camera &Camera) {
     Scene.Skybox = Skybox;
 
     // Floor
-    texture FloorTexture;
-    Texture_Create(&FloorTexture, "./resources/textures/wood.png",
-                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
-    FloorTexture.Name = "diffuse";
-    FloorTexture.Repeat = glm::vec2(10.0);
-    std::vector<texture> FloorTextures = {FloorTexture};
+    texture *FloorTexture =
+        ResourceManager_GetTexture(ResourceManager, "wood_diffuse");
+    FloorTexture->Repeat = glm::vec2(10.0);
+    std::vector<texture *> FloorTextures = {FloorTexture};
 
     material FloorMaterial = {};
     Material_Create(FloorMaterial);
@@ -450,18 +420,13 @@ void Scene_BuildScene2(scene &Scene, camera &Camera) {
     Scene_AddEntity(Scene, Floor);
 
     // Entities
-    texture ContainerDiffuseMap;
-    Texture_Create(&ContainerDiffuseMap, "./resources/textures/container.png",
-                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
-    ContainerDiffuseMap.Name = "diffuse";
-    texture ContainerSpecularMap;
-    Texture_Create(&ContainerSpecularMap,
-                   "./resources/textures/container_specular.png", GL_TEXTURE_2D,
-                   GL_TEXTURE1, GL_RGBA, GL_UNSIGNED_BYTE);
-    ContainerSpecularMap.Name = "specular";
+    texture *ContainerDiffuseMap =
+        ResourceManager_GetTexture(ResourceManager, "container_diffuse");
+    texture *ContainerSpecularMap =
+        ResourceManager_GetTexture(ResourceManager, "container_specular");
 
-    std::vector<texture> ContainerTextures = {ContainerDiffuseMap,
-                                              ContainerSpecularMap};
+    std::vector<texture *> ContainerTextures = {ContainerDiffuseMap,
+                                                ContainerSpecularMap};
 
     material ContainerMaterial = {};
     Material_Create(ContainerMaterial);
@@ -508,12 +473,12 @@ void Scene_BuildScene2(scene &Scene, camera &Camera) {
     Scene_AddDirectionalLight(Scene);
 }
 
-void Scene_BuildScene3(scene &Scene, camera &Camera) {
-    texture WoodTexture;
-    Texture_Create(&WoodTexture, "./resources/textures/wood.png", GL_TEXTURE_2D,
-                   GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+void Scene_BuildScene3(scene &Scene, resource_manager &ResourceManager,
+                       camera &Camera) {
+    texture *WoodTexture =
+        ResourceManager_GetTexture(ResourceManager, "wood_diffuse");
 
-    std::vector<texture> ContainerTextures = {WoodTexture};
+    std::vector<texture *> ContainerTextures = {WoodTexture};
 
     material ContainerMaterial = {};
     Material_Create(ContainerMaterial);
@@ -536,17 +501,12 @@ void Scene_BuildScene3(scene &Scene, camera &Camera) {
     Scene_AddEntity(Scene, Container);
 
     // Entities
-    texture BoxDiffuseMap;
-    Texture_Create(&BoxDiffuseMap, "./resources/textures/container.png",
-                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
-    BoxDiffuseMap.Name = "diffuse";
-    texture BoxSpecularMap;
-    Texture_Create(&BoxSpecularMap,
-                   "./resources/textures/container_specular.png", GL_TEXTURE_2D,
-                   GL_TEXTURE1, GL_RGBA, GL_UNSIGNED_BYTE);
-    BoxSpecularMap.Name = "specular";
+    texture *BoxDiffuseMap =
+        ResourceManager_GetTexture(ResourceManager, "container_diffuse");
+    texture *BoxSpecularMap =
+        ResourceManager_GetTexture(ResourceManager, "container_specular");
 
-    std::vector<texture> BoxTextures = {BoxDiffuseMap, BoxSpecularMap};
+    std::vector<texture *> BoxTextures = {BoxDiffuseMap, BoxSpecularMap};
 
     material BoxMaterial = {};
     Material_Create(BoxMaterial);
@@ -593,14 +553,14 @@ void Scene_BuildScene3(scene &Scene, camera &Camera) {
     Scene_AddDirectionalLight(Scene, false);
 }
 
-void Scene_BuildScene4(scene &Scene, camera &Camera) {
+void Scene_BuildScene4(scene &Scene, resource_manager &ResourceManager,
+                       camera &Camera) {
     Scene.HDREnabled = true;
 
-    texture WoodTexture;
-    Texture_Create(&WoodTexture, "./resources/textures/wood.png", GL_TEXTURE_2D,
-                   GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
+    texture *WoodTexture =
+        ResourceManager_GetTexture(ResourceManager, "wood_diffuse");
 
-    std::vector<texture> ContainerTextures = {WoodTexture};
+    std::vector<texture *> ContainerTextures = {WoodTexture};
 
     material ContainerMaterial = {};
     Material_Create(ContainerMaterial);
@@ -647,17 +607,16 @@ void Scene_BuildScene4(scene &Scene, camera &Camera) {
     Scene_AddDirectionalLight(Scene, false);
 }
 
-void Scene_BuildScene5(scene &Scene, camera &Camera) {
+void Scene_BuildScene5(scene &Scene, resource_manager &ResourceManager,
+                       camera &Camera) {
     Scene.HDREnabled = true;
     Scene.BloomEnabled = true;
 
     // Floor
-    texture FloorTexture;
-    Texture_Create(&FloorTexture, "./resources/textures/wood.png",
-                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
-    FloorTexture.Name = "diffuse";
-    FloorTexture.Repeat = glm::vec2(20.0);
-    std::vector<texture> FloorTextures = {FloorTexture};
+    texture *FloorTexture =
+        ResourceManager_GetTexture(ResourceManager, "wood_diffuse");
+    FloorTexture->Repeat = glm::vec2(20.0);
+    std::vector<texture *> FloorTextures = {FloorTexture};
 
     material FloorMaterial = {};
     Material_Create(FloorMaterial);
@@ -680,18 +639,13 @@ void Scene_BuildScene5(scene &Scene, camera &Camera) {
     Scene_AddEntity(Scene, Floor);
 
     // Entities
-    texture ContainerDiffuseMap;
-    Texture_Create(&ContainerDiffuseMap, "./resources/textures/container.png",
-                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
-    ContainerDiffuseMap.Name = "diffuse";
-    texture ContainerSpecularMap;
-    Texture_Create(&ContainerSpecularMap,
-                   "./resources/textures/container_specular.png", GL_TEXTURE_2D,
-                   GL_TEXTURE1, GL_RGBA, GL_UNSIGNED_BYTE);
-    ContainerSpecularMap.Name = "specular";
+    texture *ContainerDiffuseMap =
+        ResourceManager_GetTexture(ResourceManager, "container_diffuse");
+    texture *ContainerSpecularMap =
+        ResourceManager_GetTexture(ResourceManager, "container_specular");
 
-    std::vector<texture> ContainerTextures = {ContainerDiffuseMap,
-                                              ContainerSpecularMap};
+    std::vector<texture *> ContainerTextures = {ContainerDiffuseMap,
+                                                ContainerSpecularMap};
 
     material ContainerMaterial = {};
     Material_Create(ContainerMaterial);
@@ -753,21 +707,14 @@ void Scene_BuildScene5(scene &Scene, camera &Camera) {
     Scene_AddDirectionalLight(Scene, false);
 }
 
-void Scene_BuildScene6(scene &Scene, camera &Camera) {
+void Scene_BuildScene6(scene &Scene, resource_manager &ResourceManager,
+                       camera &Camera) {
     Scene.HDREnabled = true;
 
     // Skybox
-    texture SkyboxCubemap;
-    std::vector<std::string> SkyboxFaces{
-        "./resources/textures/skybox/right.jpg",
-        "./resources/textures/skybox/left.jpg",
-        "./resources/textures/skybox/top.jpg",
-        "./resources/textures/skybox/bottom.jpg",
-        "./resources/textures/skybox/front.jpg",
-        "./resources/textures/skybox/back.jpg",
-    };
-    Texture_CreateCubemap(&SkyboxCubemap, SkyboxFaces);
-    std::vector<texture> SkyboxTextures = {SkyboxCubemap};
+    texture *SkyboxCubemap =
+        ResourceManager_GetTexture(ResourceManager, "default_skybox");
+    std::vector<texture *> SkyboxTextures = {SkyboxCubemap};
 
     material SkyboxMaterial = {};
     Material_Create(SkyboxMaterial);
@@ -780,18 +727,13 @@ void Scene_BuildScene6(scene &Scene, camera &Camera) {
     Scene.Skybox = Skybox;
 
     // Entities
-    texture ContainerDiffuseMap;
-    Texture_Create(&ContainerDiffuseMap, "./resources/textures/container.png",
-                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
-    ContainerDiffuseMap.Name = "diffuse";
-    texture ContainerSpecularMap;
-    Texture_Create(&ContainerSpecularMap,
-                   "./resources/textures/container_specular.png", GL_TEXTURE_2D,
-                   GL_TEXTURE1, GL_RGBA, GL_UNSIGNED_BYTE);
-    ContainerSpecularMap.Name = "specular";
+    texture *ContainerDiffuseMap =
+        ResourceManager_GetTexture(ResourceManager, "container_diffuse");
+    texture *ContainerSpecularMap =
+        ResourceManager_GetTexture(ResourceManager, "container_specular");
 
-    std::vector<texture> ContainerTextures = {ContainerDiffuseMap,
-                                              ContainerSpecularMap};
+    std::vector<texture *> ContainerTextures = {ContainerDiffuseMap,
+                                                ContainerSpecularMap};
 
     material ContainerMaterial = {};
     Material_Create(ContainerMaterial);
@@ -839,16 +781,12 @@ void Scene_BuildScene6(scene &Scene, camera &Camera) {
     Scene_AddEntity(Scene, Container4);
 
     // Water
-    texture WaterDuDvMap;
-    Texture_Create(&WaterDuDvMap, "./resources/textures/water_dudv.png",
-                   GL_TEXTURE_2D, GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
-    WaterDuDvMap.Name = "dudv";
-    texture WaterNormalMap;
-    Texture_Create(&WaterNormalMap, "./resources/textures/water_normal.png",
-                   GL_TEXTURE_2D, GL_TEXTURE1, GL_RGBA, GL_UNSIGNED_BYTE);
-    WaterNormalMap.Name = "normal";
+    texture *WaterDuDvMap =
+        ResourceManager_GetTexture(ResourceManager, "water_dudv");
+    texture *WaterNormalMap =
+        ResourceManager_GetTexture(ResourceManager, "water_normal");
 
-    std::vector<texture> WaterTextures = {WaterDuDvMap, WaterNormalMap};
+    std::vector<texture *> WaterTextures = {WaterDuDvMap, WaterNormalMap};
 
     material WaterMaterial = {};
     Material_Create(WaterMaterial);

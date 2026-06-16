@@ -3,6 +3,7 @@
 
 #include "camera.h"
 #include "context.h"
+#include "resource_manager.h"
 #include "scene.h"
 #include "texture.h"
 
@@ -134,6 +135,8 @@ struct shader_program {
 };
 
 struct renderer {
+    resource_manager ResourceManager;
+
     shader_program ShaderProgram;
     shader_program OutlineShaderProgram;
     shader_program QuadShaderProgram;

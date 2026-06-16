@@ -63,7 +63,7 @@ void Model_ProcessMesh(model *Model, mesh *Mesh, aiMesh *Ai_mesh,
     // data to fill
     std::vector<vertex> Vertices;
     std::vector<unsigned int> Indices;
-    std::vector<texture> Textures;
+    std::vector<texture *> Textures;
 
     // walk through each of the mesh's vertices
     for (unsigned int i = 0; i < Ai_mesh->mNumVertices; i++) {
@@ -143,6 +143,7 @@ void Model_ProcessMesh(model *Model, mesh *Mesh, aiMesh *Ai_mesh,
                                aiTextureType_AMBIENT, "height");
 
     material Material = {};
+    Material_Create(Material);
     Material.Textures = Textures;
     Material.Shininess = 10.0f;
 
@@ -150,10 +151,9 @@ void Model_ProcessMesh(model *Model, mesh *Mesh, aiMesh *Ai_mesh,
     Mesh_Create(Mesh, Vertices, Indices, Material);
 }
 
-void Model_LoadMaterialTextures(model *Model, std::vector<texture> *Textures,
+void Model_LoadMaterialTextures(model *Model, std::vector<texture *> *Textures,
                                 aiMaterial *Mat, aiTextureType Type,
                                 std::string TypeName) {
-    std::vector<texture> TexMap;
     for (unsigned int i = 0; i < Mat->GetTextureCount(Type); i++) {
         aiString Str;
         Mat->GetTexture(Type, i, &Str);
@@ -163,7 +163,7 @@ void Model_LoadMaterialTextures(model *Model, std::vector<texture> *Textures,
         for (unsigned int j = 0; j < Model->TexturesLoaded.size(); j++) {
             if (std::strcmp(Model->TexturesLoaded[j].Path.data(),
                             Str.C_Str()) == 0) {
-                Textures->push_back(Model->TexturesLoaded[j]);
+                Textures->push_back(&Model->TexturesLoaded[j]);
                 // a texture with the same filepath has already been loaded,
                 // continue to next one. (optimization)
                 Skip = true;
@@ -181,10 +181,8 @@ void Model_LoadMaterialTextures(model *Model, std::vector<texture> *Textures,
             Texture_Create(&Texture, Filename.c_str(), GL_TEXTURE_2D,
                            GL_TEXTURE0, GL_RGBA, GL_UNSIGNED_BYTE);
 
-            TexMap.push_back(Texture);
             Model->TexturesLoaded.push_back(Texture);
+            Textures->push_back(&Model->TexturesLoaded.back());
         }
     }
-
-    Textures->insert(Textures->end(), TexMap.begin(), TexMap.end());
 }

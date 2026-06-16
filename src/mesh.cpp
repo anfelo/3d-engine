@@ -84,10 +84,10 @@ void Mesh_Draw(GLuint ShaderID, const mesh &Mesh) {
         glActiveTexture(GL_TEXTURE0 + i);
 
         glUniform2fv(glGetUniformLocation(ShaderID, "u_tex_repeat"), 1,
-                     glm::value_ptr(Mesh.Material.Textures[i].Repeat));
+                     glm::value_ptr(Mesh.Material.Textures[i]->Repeat));
         // retrieve texture number (the N in diffuse_textureN)
         std::string Number;
-        std::string Name = Mesh.Material.Textures[i].Name;
+        std::string Name = Mesh.Material.Textures[i]->Name;
         if (Name == "diffuse") {
             Number = std::to_string(DiffuseNr++);
         } else if (Name == "specular") {
@@ -113,8 +113,8 @@ void Mesh_Draw(GLuint ShaderID, const mesh &Mesh) {
         glUniform1i(
             glGetUniformLocation(ShaderID, ("u_material." + Name).c_str()), i);
         // and finally bind the texture
-        glBindTexture(Mesh.Material.Textures[i].Type,
-                      Mesh.Material.Textures[i].ID);
+        glBindTexture(Mesh.Material.Textures[i]->Type,
+                      Mesh.Material.Textures[i]->ID);
     }
 
     // draw mesh
@@ -143,7 +143,7 @@ void Mesh_DrawInstance(GLuint ShaderID, const mesh &Mesh,
         glActiveTexture(GL_TEXTURE0 + i);
         // retrieve texture number (the N in diffuse_textureN)
         std::string Number;
-        std::string Name = Mesh.Material.Textures[i].Name;
+        std::string Name = Mesh.Material.Textures[i]->Name;
         if (Name == "diffuse") {
             Number = std::to_string(DiffuseNr++);
         } else if (Name == "specular") {
@@ -164,8 +164,8 @@ void Mesh_DrawInstance(GLuint ShaderID, const mesh &Mesh,
         glUniform1i(
             glGetUniformLocation(ShaderID, ("u_material." + Name).c_str()), i);
         // and finally bind the texture
-        glBindTexture(Mesh.Material.Textures[i].Type,
-                      Mesh.Material.Textures[i].ID);
+        glBindTexture(Mesh.Material.Textures[i]->Type,
+                      Mesh.Material.Textures[i]->ID);
     }
 
     // draw mesh

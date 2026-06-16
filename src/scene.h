@@ -4,6 +4,7 @@
 #include <vector>
 #include "camera.h"
 #include "entity.h"
+#include "resource_manager.h"
 
 struct skybox {
     mesh Mesh;
@@ -37,11 +38,17 @@ void Scene_AddDirectionalLight(scene &Scene, bool IsEnabled);
 void Scene_AddSpotLight(scene &Scene, bool IsEnabled);
 void Scene_AddSpotLight(scene &Scene, glm::vec3 Position, bool IsEnabled);
 
-void Scene_BuildScene1(scene &Scene, camera &Camera);
-void Scene_BuildScene2(scene &Scene, camera &Camera);
-void Scene_BuildScene3(scene &Scene, camera &Camera);
-void Scene_BuildScene4(scene &Scene, camera &Camera);
-void Scene_BuildScene5(scene &Scene, camera &Camera);
-void Scene_BuildScene6(scene &Scene, camera &Camera);
+void Scene_BuildScene1(scene &Scene, resource_manager &ResourceManager,
+                       camera &Camera);
+void Scene_BuildScene2(scene &Scene, resource_manager &ResourceManager,
+                       camera &Camera);
+void Scene_BuildScene3(scene &Scene, resource_manager &ResourceManager,
+                       camera &Camera);
+void Scene_BuildScene4(scene &Scene, resource_manager &ResourceManager,
+                       camera &Camera);
+void Scene_BuildScene5(scene &Scene, resource_manager &ResourceManager,
+                       camera &Camera);
+void Scene_BuildScene6(scene &Scene, resource_manager &ResourceManager,
+                       camera &Camera);
 
 #endif

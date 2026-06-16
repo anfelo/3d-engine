@@ -22,7 +22,7 @@ struct entity {
     glm::vec4 Rotation;
     bool IsSelected;
     mesh Mesh;
-    model Model;
+    model *Model;
 };
 
 enum class light_type {

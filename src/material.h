@@ -7,7 +7,7 @@
 enum class shader_material { Default, Unlit, Water };
 
 struct material {
-    std::vector<texture> Textures;
+    std::vector<texture *> Textures;
 
     bool HasNormalMap;
     bool HasSpecularMap;

@@ -981,8 +981,8 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
         glUniform1fv(Renderer.InstanceShaderProgram.Uniforms.FarPlaneUniformLoc,
                      1, &FarPlane);
 
-        model Model = Scene.Instances[0].Model;
-        Model_DrawInstances(Renderer.InstanceShaderProgram.ID, Model,
+        model *Model = Scene.Instances[0].Model;
+        Model_DrawInstances(Renderer.InstanceShaderProgram.ID, *Model,
                             Scene.Instances.size());
     }
 
@@ -1216,7 +1216,7 @@ void Renderer_DrawModelEntity(const renderer &Renderer,
     glUniformMatrix4fv(ShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
                        glm::value_ptr(Model));
 
-    Model_Draw(ShaderProgram.ID, Entity.Model);
+    Model_Draw(ShaderProgram.ID, *Entity.Model);
 
     if (Entity.IsSelected) {
         // 2st render pass: draws the outline
@@ -1235,7 +1235,7 @@ void Renderer_DrawModelEntity(const renderer &Renderer,
             Renderer.OutlineShaderProgram.Uniforms.ModelUniformLoc, 1, GL_FALSE,
             glm::value_ptr(Model));
 
-        Model_Draw(Renderer.OutlineShaderProgram.ID, Entity.Model);
+        Model_Draw(Renderer.OutlineShaderProgram.ID, *Entity.Model);
 
         glStencilMask(0xFF);
         glStencilFunc(GL_ALWAYS, 1, 0xFF);
