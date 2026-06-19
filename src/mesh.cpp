@@ -1,5 +1,6 @@
 #include "mesh.h"
 #include "glm/gtc/type_ptr.hpp"
+#include "shader.h"
 #include "texture.h"
 
 void Mesh_Create(mesh *Mesh, std::vector<vertex> Vertices,
@@ -64,7 +65,7 @@ void Mesh_Setup(mesh *Mesh) {
     glBindVertexArray(0);
 }
 
-void Mesh_Draw(GLuint ShaderID, const mesh &Mesh) {
+void Mesh_Draw(const mesh &Mesh, shader Shader) {
     // bind appropriate textures
     unsigned int DiffuseNr = 1;
     unsigned int SpecularNr = 1;
@@ -72,19 +73,18 @@ void Mesh_Draw(GLuint ShaderID, const mesh &Mesh) {
     unsigned int HeightNr = 1;
     unsigned int DuDvNr = 1;
 
-    glUniform1f(glGetUniformLocation(ShaderID, "u_material.shininess"),
-                Mesh.Material.Shininess);
-    glUniform1i(glGetUniformLocation(ShaderID, "u_material.has_specular"), 0);
-    glUniform1i(glGetUniformLocation(ShaderID, "u_material.has_normal"), 0);
-    glUniform1i(glGetUniformLocation(ShaderID, "u_reverse_normal"),
-                Mesh.Material.ReverseNormal ? 1 : 0);
+    Shader_SetInt(Shader, "u_material.shininess", Mesh.Material.Shininess);
+    Shader_SetInt(Shader, "u_material.has_specular", 0);
+    Shader_SetInt(Shader, "u_material.has_normal", 0);
+    Shader_SetInt(Shader, "u_reverse_normal",
+                  Mesh.Material.ReverseNormal ? 1 : 0);
 
     for (unsigned int i = 0; i < Mesh.Material.Textures.size(); i++) {
         // active proper texture unit before binding
         glActiveTexture(GL_TEXTURE0 + i);
 
-        glUniform2fv(glGetUniformLocation(ShaderID, "u_tex_repeat"), 1,
-                     glm::value_ptr(Mesh.Material.Textures[i]->Repeat));
+        Shader_SetVec2(Shader, "u_tex_repeat",
+                       Mesh.Material.Textures[i]->Repeat);
         // retrieve texture number (the N in diffuse_textureN)
         std::string Number;
         std::string Name = Mesh.Material.Textures[i]->Name;
@@ -93,13 +93,11 @@ void Mesh_Draw(GLuint ShaderID, const mesh &Mesh) {
         } else if (Name == "specular") {
             // transfer unsigned int to string
             Number = std::to_string(SpecularNr++);
-            glUniform1i(
-                glGetUniformLocation(ShaderID, "u_material.has_specular"), 1);
+            Shader_SetInt(Shader, "u_material.has_specular", 1);
         } else if (Name == "normal") {
             // transfer unsigned int to string
             Number = std::to_string(NormalNr++);
-            glUniform1i(glGetUniformLocation(ShaderID, "u_material.has_normal"),
-                        1);
+            Shader_SetInt(Shader, "u_material.has_normal", 1);
         } else if (Name == "height") {
             // transfer unsigned int to string
             Number = std::to_string(HeightNr++);
@@ -110,8 +108,7 @@ void Mesh_Draw(GLuint ShaderID, const mesh &Mesh) {
             //             1);
         }
         // now set the sampler to the correct texture unit
-        glUniform1i(
-            glGetUniformLocation(ShaderID, ("u_material." + Name).c_str()), i);
+        Shader_SetInt(Shader, ("u_material." + Name).c_str(), i);
         // and finally bind the texture
         glBindTexture(Mesh.Material.Textures[i]->Type,
                       Mesh.Material.Textures[i]->ID);
@@ -127,7 +124,7 @@ void Mesh_Draw(GLuint ShaderID, const mesh &Mesh) {
     glActiveTexture(GL_TEXTURE0);
 }
 
-void Mesh_DrawInstance(GLuint ShaderID, const mesh &Mesh,
+void Mesh_DrawInstance(const mesh &Mesh, shader Shader,
                        unsigned int InstancesNum) {
     // bind appropriate textures
     unsigned int DiffuseNr = 1;
@@ -135,8 +132,8 @@ void Mesh_DrawInstance(GLuint ShaderID, const mesh &Mesh,
     unsigned int NormalNr = 1;
     unsigned int HeightNr = 1;
 
-    glUniform1i(glGetUniformLocation(ShaderID, "u_material.has_specular"), 0);
-    glUniform1i(glGetUniformLocation(ShaderID, "u_material.has_normal"), 0);
+    Shader_SetInt(Shader, "u_material.has_specular", 0);
+    Shader_SetInt(Shader, "u_material.has_normal", 0);
 
     for (unsigned int i = 0; i < Mesh.Material.Textures.size(); i++) {
         // active proper texture unit before binding
@@ -149,20 +146,17 @@ void Mesh_DrawInstance(GLuint ShaderID, const mesh &Mesh,
         } else if (Name == "specular") {
             // transfer unsigned int to string
             Number = std::to_string(SpecularNr++);
-            glUniform1i(
-                glGetUniformLocation(ShaderID, "u_material.has_specular"), 1);
+            Shader_SetInt(Shader, "u_material.has_specular", 1);
         } else if (Name == "normal") {
             // transfer unsigned int to string
             Number = std::to_string(NormalNr++);
-            glUniform1i(glGetUniformLocation(ShaderID, "u_material.has_normal"),
-                        1);
+            Shader_SetInt(Shader, "u_material.has_normal", 1);
         } else if (Name == "height") {
             // transfer unsigned int to string
             Number = std::to_string(HeightNr++);
         }
         // now set the sampler to the correct texture unit
-        glUniform1i(
-            glGetUniformLocation(ShaderID, ("u_material." + Name).c_str()), i);
+        Shader_SetInt(Shader, ("u_material." + Name).c_str(), i);
         // and finally bind the texture
         glBindTexture(Mesh.Material.Textures[i]->Type,
                       Mesh.Material.Textures[i]->ID);

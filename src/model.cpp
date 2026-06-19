@@ -30,16 +30,16 @@ void Model_Load(model *Model, std::string Path) {
     Model_ProcessNode(Model, Scene->mRootNode, Scene);
 }
 
-void Model_Draw(GLuint ShaderID, const model &Model) {
+void Model_Draw(const model &Model, shader Shader) {
     for (unsigned int i = 0; i < Model.Meshes.size(); i++) {
-        Mesh_Draw(ShaderID, Model.Meshes[i]);
+        Mesh_Draw(Model.Meshes[i], Shader);
     }
 }
 
-void Model_DrawInstances(GLuint ShaderID, const model &Model,
+void Model_DrawInstances(const model &Model, shader Shader,
                          unsigned int InstancesNum) {
     for (unsigned int i = 0; i < Model.Meshes.size(); i++) {
-        Mesh_DrawInstance(ShaderID, Model.Meshes[i], InstancesNum);
+        Mesh_DrawInstance(Model.Meshes[i], Shader, InstancesNum);
     }
 }
 

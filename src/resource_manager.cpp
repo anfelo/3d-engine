@@ -1,6 +1,7 @@
 #include "resource_manager.h"
 #include "model.h"
 #include "texture.h"
+#include <iostream>
 
 void ResourceManager_LoadTextures(resource_manager &ResourceManager) {
     // Crate(Container)
@@ -110,6 +111,8 @@ texture *ResourceManager_GetTexture(resource_manager &ResourceManager,
                                     std::string Key) {
     auto Existing = ResourceManager.Textures.find(Key);
     if (Existing == ResourceManager.Textures.end()) {
+        std::cerr << "ERROR::RESOURCE_MANAGER:: Texture resource not found: "
+                  << Key << std::endl;
         return nullptr;
     }
 
@@ -120,6 +123,8 @@ model *ResourceManager_GetModel(resource_manager &ResourceManager,
                                 std::string Key) {
     auto Existing = ResourceManager.Models.find(Key);
     if (Existing == ResourceManager.Models.end()) {
+        std::cerr << "ERROR::RESOURCE_MANAGER:: Model resource not found: "
+                  << Key << std::endl;
         return nullptr;
     }
 

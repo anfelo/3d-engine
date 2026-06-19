@@ -112,7 +112,7 @@ void Scene_BuildScene1(scene &Scene, resource_manager &ResourceManager,
                        camera &Camera) {
     // Skybox
     texture *SkyboxCubemap =
-        ResourceManager_GetTexture(ResourceManager, "defualt_skybox");
+        ResourceManager_GetTexture(ResourceManager, "default_skybox");
     std::vector<texture *> SkyboxTextures = {SkyboxCubemap};
 
     material SkyboxMaterial = {};

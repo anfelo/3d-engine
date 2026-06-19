@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "material.h"
+#include "shader.h"
 #include "texture.h"
 #include <glm/glm.hpp>
 
@@ -38,8 +39,8 @@ void Mesh_CreateQuad(mesh *Mesh, material Material);
 void Mesh_CreateGrid(mesh *Mesh, material Material, int Resolution, float Size);
 void Mesh_CreateGuiQuad(mesh *Mesh, material Material);
 void Mesh_Setup(mesh *Mesh);
-void Mesh_Draw(GLuint ShaderID, const mesh &Mesh);
-void Mesh_DrawInstance(GLuint ShaderID, const mesh &Mesh,
+void Mesh_Draw(const mesh &Mesh, shader Shader);
+void Mesh_DrawInstance(const mesh &Mesh, shader Shader,
                        unsigned int InstancesNum);
 
 #endif

@@ -45,7 +45,7 @@ int main() {
         .ShadowbufferWidth = 1024,
         .ShadowbufferHeight = 1024,
         .DeltaTime = 0.0f,
-        .CurrentSceneIdx = 5,
+        .CurrentSceneIdx = 0,
     };
 
     if (Context.Window == NULL) {

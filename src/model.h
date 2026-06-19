@@ -17,8 +17,8 @@ struct model {
 
 void Model_Create(model *Model, const char *Path, bool GammaCorrection);
 void Model_Load(model *Model, std::string Path);
-void Model_Draw(GLuint ShaderID, const model &Model);
-void Model_DrawInstances(GLuint ShaderID, const model &Model,
+void Model_Draw(const model &Model, shader Shader);
+void Model_DrawInstances(const model &Model, shader Shader,
                          unsigned int InstancesNum);
 void Model_ProcessNode(model *Model, aiNode *Node, const aiScene *Scene);
 void Model_ProcessMesh(model *Model, mesh *Mesh, aiMesh *Ai_mesh,

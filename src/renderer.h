@@ -5,37 +5,13 @@
 #include "context.h"
 #include "resource_manager.h"
 #include "scene.h"
+#include "shader.h"
 #include "texture.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <iostream>
-
-struct triangle_mesh {
-    float Vertices[9];
-
-    GLuint VAO;
-    GLuint VBO;
-    GLuint EBO;
-};
-
-struct quad_mesh {
-    float Vertices[12];
-    GLuint Indices[6];
-
-    GLuint VAO;
-    GLuint VBO;
-    GLuint EBO;
-};
-
-struct cube_mesh {
-    float Vertices[288];
-
-    GLuint VAO;
-    GLuint VBO;
-    GLuint EBO;
-};
 
 struct directional_light {
     GLuint DirUniformLoc;
@@ -128,27 +104,21 @@ struct uniform_locators {
     point_light PointLights[4];
 };
 
-struct shader_program {
-    GLuint ID;
-
-    uniform_locators Uniforms;
-};
-
 struct renderer {
     resource_manager ResourceManager;
 
-    shader_program ShaderProgram;
-    shader_program OutlineShaderProgram;
-    shader_program QuadShaderProgram;
-    shader_program ScreenShaderProgram;
-    shader_program SkyBoxShaderProgram;
-    shader_program InstanceShaderProgram;
-    shader_program UnlitShaderProgram;
-    shader_program SimpleDepthShaderProgram;
-    shader_program CubemapDepthShaderProgram;
-    shader_program BlurShaderProgram;
-    shader_program WaterShaderProgram;
-    shader_program GuiShaderProgram;
+    shader ShaderProgram;
+    shader OutlineShaderProgram;
+    shader QuadShaderProgram;
+    shader ScreenShaderProgram;
+    shader SkyBoxShaderProgram;
+    shader InstanceShaderProgram;
+    shader UnlitShaderProgram;
+    shader SimpleDepthShaderProgram;
+    shader CubemapDepthShaderProgram;
+    shader BlurShaderProgram;
+    shader WaterShaderProgram;
+    shader GuiShaderProgram;
 
     // Framebuffer stuff
     GLuint FrameBufferVAO, FrameBufferVBO;
@@ -189,47 +159,40 @@ renderer Renderer_Create(const context &Context);
 void Renderer_Destroy(renderer &Renderer);
 void Renderer_ResizeFramebuffer(const renderer &Renderer, int ScreenWidth,
                                 int ScreenHeight);
-shader_program Renderer_CreateShaderProgram(const char *VertexFile,
-                                            const char *FragmentFile,
-                                            const char *GeometryFile = nullptr);
 void Renderer_BindFramebuffer(const renderer &Renderer, GLuint FramebufferID,
                               int Width, int Height);
 void Renderer_Draw(const renderer &Renderer, const scene &Scene,
                    const context &Context);
-void Renderer_DrawScene(const renderer &Renderer,
-                        const shader_program &ShaderProgram, const scene &Scene,
-                        bool useEntityShader = true);
+void Renderer_DrawScene(const renderer &Renderer, const shader &ShaderProgram,
+                        const scene &Scene, bool useEntityShader = true);
 void Renderer_DrawSceneWater(const renderer &Renderer, const scene &Scene);
 void Renderer_DrawTriangle(const renderer &Renderer,
-                           const shader_program &ShaderProgram,
+                           const shader &ShaderProgram,
                            glm::vec<3, float> position);
 void Renderer_DrawQuadEntity(const renderer &Renderer,
-                             const shader_program &ShaderProgram,
-                             const entity &Entity);
+                             const shader &ShaderProgram, const entity &Entity);
 void Renderer_DrawCubeEntity(const renderer &Renderer,
-                             const shader_program &ShaderProgram,
-                             const entity &Entity);
+                             const shader &ShaderProgram, const entity &Entity);
 void Renderer_DrawModelEntity(const renderer &Renderer,
-                              const shader_program &ShaderProgram,
+                              const shader &ShaderProgram,
                               const entity &Entity);
 void Renderer_DrawGuiEntity(const renderer &Renderer,
-                            const shader_program &ShaderProgram,
-                            const entity &Entity);
+                            const shader &ShaderProgram, const entity &Entity);
 void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
                         glm::vec<4, float> Color, float AmbientStrength,
                         float SpecularStrength);
 void Renderer_DrawSkybox(const renderer &Renderer, const skybox &Skybox);
 void Renderer_SetSceneLightsUniforms(const renderer &Renderer,
-                                     const shader_program &ShaderProgram,
+                                     const shader &ShaderProgram,
                                      const scene &Scene, const camera &Camera);
 void Renderer_ClearBackground(float R, float G, float B, float Alpha);
 void Renderer_SetCameraUniforms(const renderer &Renderer, const camera &Camera,
                                 float ScreenWidth, float ScreenHeight);
+void Renderer_SetShaderCameraUniforms(const renderer &Renderer,
+                                      const shader &Shader, glm::mat4 View,
+                                      glm::vec3 ViewPosition,
+                                      glm::mat4 Projection);
 void Renderer_SetOtherUniforms(const renderer &Renderer,
                                const context &Context);
-
-triangle_mesh Renderer_GetTriangleMesh();
-quad_mesh Renderer_GetQuadMesh();
-cube_mesh Renderer_GetCubeMesh();
 
 #endif
