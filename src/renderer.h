@@ -117,6 +117,7 @@ struct renderer {
     // PingPong Framebuffers stuff (for bloom filter)
     GLuint PingPongFBO[2];
     GLuint PingPongColorBuffers[2];
+    bool CurrentPingPongBuffer;
 
     // Depth Map stuff
     GLuint DepthMapFBO;
@@ -148,7 +149,23 @@ void Renderer_ResizeFramebuffer(const renderer &Renderer, int ScreenWidth,
                                 int ScreenHeight);
 void Renderer_BindFramebuffer(const renderer &Renderer, GLuint FramebufferID,
                               int Width, int Height);
-void Renderer_Draw(const renderer &Renderer, const scene &Scene,
+void Renderer_DirectionalShadowPass(const renderer &Renderer,
+                                    const scene &Scene, const context &Context);
+void Renderer_PointShadowPass(const renderer &Renderer, const scene &Scene,
+                              const context &Context);
+void Renderer_WaterRefractionPass(const renderer &Renderer, const scene &Scene,
+                                  const context &Context);
+void Renderer_WaterReflectionPass(const renderer &Renderer, const scene &Scene,
+                                  const context &Context);
+void Renderer_BloomPass(renderer &Renderer, const scene &Scene,
+                        const context &Context);
+void Renderer_MainScenePass(const renderer &Renderer, const scene &Scene,
+                            const context &Context);
+void Renderer_GuiPass(const renderer &Renderer, const scene &Scene,
+                      const context &Context);
+void Renderer_PresentPass(const renderer &Renderer, const scene &Scene,
+                          bool PingPongBuffer, const context &Context);
+void Renderer_Draw(renderer &Renderer, const scene &Scene,
                    const context &Context);
 void Renderer_DrawScene(const renderer &Renderer, const shader &ShaderProgram,
                         const scene &Scene, bool useEntityShader = true);

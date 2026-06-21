@@ -403,14 +403,13 @@ void Renderer_DrawScene(const renderer &Renderer, const shader &Shader,
     }
 }
 
-void Renderer_Draw(const renderer &Renderer, const scene &Scene,
-                   const context &Context) {
+void Renderer_DirectionalShadowPass(const renderer &Renderer,
+                                    const scene &Scene,
+                                    const context &Context) {
+    Renderer_BindFramebuffer(Renderer, Renderer.DepthMapFBO,
+                             Context.ShadowbufferWidth,
+                             Context.ShadowbufferHeight);
     glEnable(GL_DEPTH_TEST);
-
-    // Directional Shadow Mapping
-    // 1st. Pass: Draw the scene to the depth buffer for the shadow pass
-    glViewport(0, 0, Context.ShadowbufferWidth, Context.ShadowbufferHeight);
-    glBindFramebuffer(GL_FRAMEBUFFER, Renderer.DepthMapFBO);
     glClear(GL_DEPTH_BUFFER_BIT);
 
     // Set view & projection for depth shader from the light's perspective
@@ -435,17 +434,19 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     glCullFace(GL_BACK);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
 
-    // Point Shadow Mapping
-    glViewport(0, 0, Context.ShadowbufferWidth, Context.ShadowbufferHeight);
-    glBindFramebuffer(GL_FRAMEBUFFER, Renderer.DepthCubemapFBO);
+void Renderer_PointShadowPass(const renderer &Renderer, const scene &Scene,
+                              const context &Context) {
+    Renderer_BindFramebuffer(Renderer, Renderer.DepthCubemapFBO,
+                             Context.ShadowbufferWidth,
+                             Context.ShadowbufferHeight);
     glClear(GL_DEPTH_BUFFER_BIT);
 
     // Set view & projection for depth shader from the light's perspective
     float Aspect =
         (float)Context.ShadowbufferWidth / (float)Context.ShadowbufferHeight;
-    NearPlane = 0.1f;
-    FarPlane = 25.0f;
+    float NearPlane = 0.1f, FarPlane = 25.0f;
 
     bool HasPointLight = false;
     glm::vec3 PointLightPosition(0.0f);
@@ -508,7 +509,10 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
 
+void Renderer_WaterRefractionPass(const renderer &Renderer, const scene &Scene,
+                                  const context &Context) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CLIP_DISTANCE0);
     Renderer_BindFramebuffer(Renderer, Renderer.RefractionFBO,
@@ -540,14 +544,26 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
 
     Renderer_DrawScene(Renderer, *LitShader, Scene);
     Renderer_DrawSkybox(Renderer, Scene.Skybox);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, Context.FramebufferWidth, Context.FramebufferHeight);
 
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void Renderer_WaterReflectionPass(const renderer &Renderer, const scene &Scene,
+                                  const context &Context) {
     Renderer_BindFramebuffer(Renderer, Renderer.ReflectionFBO,
                              Renderer.ReflectionFBOWidth,
                              Renderer.ReflectionFBOHeight);
     glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    const shader *LitShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Lit);
+    const shader *UnlitShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Unlit);
+    const shader *InstanceShader = ResourceManager_GetShader(
+        Renderer.ResourceManager, shader_type::Instance);
+    const shader *WaterShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Water);
 
     glm::vec4 ReflectionClipPlane = glm::vec4(0.0f, 1.0f, 0.0f, -0.01f);
     Shader_SetVec4(*LitShader, "u_clip_plane", ReflectionClipPlane);
@@ -573,11 +589,10 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     Renderer_DrawSkybox(Renderer, Scene.Skybox);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glViewport(0, 0, Context.FramebufferWidth, Context.FramebufferHeight);
+}
 
-    // 2st. Pass: Draw the scene to the framebuffer
-    // bind to framebuffer and draw scene as we normally would to color
-    // texture
+void Renderer_MainScenePass(const renderer &Renderer, const scene &Scene,
+                            const context &Context) {
     Renderer_BindFramebuffer(Renderer, Renderer.FrameBuffer,
                              Context.FramebufferWidth,
                              Context.FramebufferHeight);
@@ -590,6 +605,15 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     glClearStencil(0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+    const shader *WaterShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Water);
+    const shader *LitShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Lit);
+    const shader *UnlitShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Unlit);
+    const shader *InstanceShader = ResourceManager_GetShader(
+        Renderer.ResourceManager, shader_type::Instance);
+
     glDisable(GL_CLIP_DISTANCE0);
     // INFO: Hack when disabling the clip_distance doesn't work
     glm::vec4 NoClipPlane = glm::vec4(0.0f, 1.0f, 0.0f, 10000.0f);
@@ -598,7 +622,7 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     Shader_SetVec4(*InstanceShader, "u_clip_plane", NoClipPlane);
     Shader_SetVec4(*WaterShader, "u_clip_plane", NoClipPlane);
 
-    glUseProgram(LitShader->ID);
+    Shader_Use(*LitShader);
 
     // Sets the view & projection uniforms for all the programs
     Renderer_SetCameraUniforms(Renderer, Context.Camera, Context.ScreenWidth,
@@ -615,6 +639,17 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     Shader_SetInt(*LitShader, "u_shadow_map", 3);
 
     // Point Shadow Cubemap
+    // Set view & projection for depth shader from the light's perspective
+    float NearPlane = 0.1f, FarPlane = 25.0f;
+    glm::mat4 LightProjection =
+        glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, NearPlane, FarPlane);
+    glm::vec3 LightDir = glm::normalize(glm::vec3(1.0f, -1.0f, 0.3f));
+    glm::vec3 LightPos = -LightDir * 10.0f;
+    glm::mat4 LightView = glm::lookAt(LightPos, glm::vec3(0.0f, 0.0f, 0.0f),
+                                      glm::vec3(0.0f, 1.0f, 0.0f));
+
+    glm::mat4 LightSpaceMatrix = LightProjection * LightView;
+
     glActiveTexture(GL_TEXTURE4);
     glBindTexture(GL_TEXTURE_CUBE_MAP, Renderer.DepthCubemapBuffer);
     Shader_SetInt(*LitShader, "u_shadow_cubemap", 4);
@@ -625,7 +660,7 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     Renderer_DrawScene(Renderer, *LitShader, Scene);
 
     // TODO: Refactor the Water Renderer
-    glUseProgram(WaterShader->ID);
+    Shader_Use(*WaterShader);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, Renderer.RefractionColorBuffer);
     glActiveTexture(GL_TEXTURE3);
@@ -668,9 +703,10 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
 
     // Skybox
     Renderer_DrawSkybox(Renderer, Scene.Skybox);
+}
 
-    // Bloom Blur Pass: blur bright fragments with two-pass Gaussian Blur
-    // --------------------------------------------------
+void Renderer_BloomPass(renderer &Renderer, const scene &Scene,
+                        const context &Context) {
     bool Horizontal = true, FirstIteration = true;
     unsigned int Amount = 10;
     const shader *BlurShader =
@@ -694,6 +730,11 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
         }
     }
 
+    Renderer.CurrentPingPongBuffer = Horizontal;
+}
+
+void Renderer_GuiPass(const renderer &Renderer, const scene &Scene,
+                      const context &Context) {
     Renderer_BindFramebuffer(Renderer, Renderer.FrameBuffer,
                              Context.FramebufferWidth,
                              Context.FramebufferHeight);
@@ -708,8 +749,11 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     for (unsigned int i = 0; i < Scene.GuiTextures.size(); ++i) {
         Renderer_DrawGuiEntity(Renderer, *GuiShader, Scene.GuiTextures.at(i));
     }
+}
 
-    // 3th. Pass: Draw whatever is in the Framebuffer to the screen quad
+void Renderer_PresentPass(const renderer &Renderer, const scene &Scene,
+                          const context &Context) {
+    // Draw whatever is in the Framebuffer to the screen quad
     // now bind back to default framebuffer and draw a quad plane with the
     // attached framebuffer color texture
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -738,8 +782,22 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, Renderer.TextureColorBuffer);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, Renderer.PingPongColorBuffers[!Horizontal]);
+    glBindTexture(
+        GL_TEXTURE_2D,
+        Renderer.PingPongColorBuffers[!Renderer.CurrentPingPongBuffer]);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void Renderer_Draw(renderer &Renderer, const scene &Scene,
+                   const context &Context) {
+    Renderer_DirectionalShadowPass(Renderer, Scene, Context);
+    Renderer_PointShadowPass(Renderer, Scene, Context);
+    Renderer_WaterRefractionPass(Renderer, Scene, Context);
+    Renderer_WaterReflectionPass(Renderer, Scene, Context);
+    Renderer_MainScenePass(Renderer, Scene, Context);
+    Renderer_BloomPass(Renderer, Scene, Context);
+    Renderer_GuiPass(Renderer, Scene, Context);
+    Renderer_PresentPass(Renderer, Scene, Context);
 }
 
 // TODO: Needs fixing
