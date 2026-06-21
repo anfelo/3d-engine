@@ -16,6 +16,7 @@
 #include "material.h"
 #include "mesh.h"
 #include "model.h"
+#include "resource_manager.h"
 #include "scene.h"
 #include "shader.h"
 
@@ -34,43 +35,6 @@ renderer Renderer_Create(const context &Context) {
     glEnable(GL_CULL_FACE);
 
     renderer Renderer;
-    Shader_Create(Renderer.ShaderProgram, "./resources/shaders/default.vert",
-                  "./resources/shaders/default.frag");
-    Shader_Create(Renderer.OutlineShaderProgram,
-                  "./resources/shaders/default.vert",
-                  "./resources/shaders/outline.frag");
-    Shader_Create(Renderer.QuadShaderProgram,
-                  "./resources/shaders/default.vert",
-                  "./resources/shaders/quad.frag");
-    Shader_Create(Renderer.ScreenShaderProgram,
-                  "./resources/shaders/framebuffer.vert",
-                  "./resources/shaders/framebuffer.frag");
-    Shader_Create(Renderer.SkyBoxShaderProgram,
-                  "./resources/shaders/cubemap.vert",
-                  "./resources/shaders/cubemap.frag");
-    Shader_Create(Renderer.InstanceShaderProgram,
-                  "./resources/shaders/instance.vert",
-                  "./resources/shaders/default.frag");
-    Shader_Create(Renderer.UnlitShaderProgram, "./resources/shaders/unlit.vert",
-                  "./resources/shaders/unlit.frag");
-    Shader_Create(Renderer.SimpleDepthShaderProgram,
-                  "./resources/shaders/simple_depth.vert",
-                  "./resources/shaders/simple_depth.frag");
-    Shader_Create(Renderer.CubemapDepthShaderProgram,
-                  "./resources/shaders/cube_depth.vert",
-                  "./resources/shaders/cube_depth.frag",
-                  "./resources/shaders/cube_depth.gs");
-    Shader_Create(Renderer.BlurShaderProgram, "./resources/shaders/blur.vert",
-                  "./resources/shaders/blur.frag");
-    Shader_Create(Renderer.WaterShaderProgram, "./resources/shaders/water.vert",
-                  "./resources/shaders/water.frag");
-    Shader_Create(Renderer.GuiShaderProgram, "./resources/shaders/gui.vert",
-                  "./resources/shaders/gui.frag");
-
-    Shader_SetInt(Renderer.BlurShaderProgram, "u_screen_texture", 0);
-    Shader_SetInt(Renderer.WaterShaderProgram, "u_refraction_texture", 2);
-    Shader_SetInt(Renderer.WaterShaderProgram, "u_reflection_texture", 3);
-    Shader_SetInt(Renderer.WaterShaderProgram, "u_depth_map", 4);
 
     // ### Screen Quad ###
     // Used for the framebuffer post-processing
@@ -96,9 +60,6 @@ renderer Renderer_Create(const context &Context) {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
                           (void *)(2 * sizeof(float)));
-
-    Shader_SetInt(Renderer.ScreenShaderProgram, "u_screen_texture", 0);
-    Shader_SetInt(Renderer.ScreenShaderProgram, "u_bloom_texture", 1);
 
     // ### Framebuffer Configuration ###
     glGenFramebuffers(1, &Renderer.FrameBuffer);
@@ -300,18 +261,7 @@ renderer Renderer_Create(const context &Context) {
 }
 
 void Renderer_Destroy(renderer &Renderer) {
-    Shader_Delete(Renderer.ShaderProgram);
-    Shader_Delete(Renderer.OutlineShaderProgram);
-    Shader_Delete(Renderer.QuadShaderProgram);
-    Shader_Delete(Renderer.ScreenShaderProgram);
-    Shader_Delete(Renderer.InstanceShaderProgram);
-    Shader_Delete(Renderer.BlurShaderProgram);
-    Shader_Delete(Renderer.CubemapDepthShaderProgram);
-    Shader_Delete(Renderer.SimpleDepthShaderProgram);
-    Shader_Delete(Renderer.GuiShaderProgram);
-    Shader_Delete(Renderer.SkyBoxShaderProgram);
-    Shader_Delete(Renderer.UnlitShaderProgram);
-    Shader_Delete(Renderer.WaterShaderProgram);
+    ResourceManager_ClearResources(Renderer.ResourceManager);
 
     glDeleteFramebuffers(1, &Renderer.FrameBuffer);
     glDeleteTextures(1, &Renderer.TextureColorBuffer);
@@ -370,7 +320,9 @@ void Renderer_DrawSceneWater(const renderer &Renderer, const scene &Scene) {
             continue;
         }
 
-        Renderer_DrawQuadEntity(Renderer, Renderer.WaterShaderProgram, Entity);
+        const shader *WaterShader = ResourceManager_GetShader(
+            Renderer.ResourceManager, shader_type::Water);
+        Renderer_DrawQuadEntity(Renderer, *WaterShader, Entity);
     }
 }
 
@@ -382,12 +334,18 @@ void Renderer_DrawScene(const renderer &Renderer, const shader &Shader,
         shader _Shader = Shader;
         if (useEntityShader) {
             switch (Entity.Mesh.Material.ShaderMaterial) {
-            case shader_material::Default:
-                _Shader = Renderer.ShaderProgram;
+            case shader_material::Default: {
+                const shader *DefaultShader = ResourceManager_GetShader(
+                    Renderer.ResourceManager, shader_type::Lit);
+                _Shader = *DefaultShader;
                 break;
-            case shader_material::Unlit:
-                _Shader = Renderer.UnlitShaderProgram;
+            }
+            case shader_material::Unlit: {
+                const shader *UnlitShader = ResourceManager_GetShader(
+                    Renderer.ResourceManager, shader_type::Unlit);
+                _Shader = *UnlitShader;
                 break;
+            }
             case shader_material::Water:
                 // INFO: Water is drawn through a different method
                 continue;
@@ -424,12 +382,17 @@ void Renderer_DrawScene(const renderer &Renderer, const shader &Shader,
             if (Light.ShowDebug && Light.LightType == light_type::Point) {
                 shader _Shader = Shader;
                 switch (Light.Entity.Mesh.Material.ShaderMaterial) {
-                case shader_material::Default:
-                    _Shader = Renderer.ShaderProgram;
+                case shader_material::Default: {
+                    const shader *DefaultShader = ResourceManager_GetShader(
+                        Renderer.ResourceManager, shader_type::Lit);
+                    _Shader = *DefaultShader;
+                } break;
+                case shader_material::Unlit: {
+                    const shader *UnlitShader = ResourceManager_GetShader(
+                        Renderer.ResourceManager, shader_type::Unlit);
+                    _Shader = *UnlitShader;
                     break;
-                case shader_material::Unlit:
-                    _Shader = Renderer.UnlitShaderProgram;
-                    break;
+                }
                 default:
                     break;
                 }
@@ -462,13 +425,13 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
 
     glm::mat4 LightSpaceMatrix = LightProjection * LightView;
 
-    Shader_SetMat4(Renderer.SimpleDepthShaderProgram, "u_light_space_matrix",
-                   LightSpaceMatrix);
+    const shader *DepthShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Depth);
+    Shader_SetMat4(*DepthShader, "u_light_space_matrix", LightSpaceMatrix);
 
     // Remove peter panning problems
     // glCullFace(GL_FRONT);
-    Renderer_DrawScene(Renderer, Renderer.SimpleDepthShaderProgram, Scene,
-                       false);
+    Renderer_DrawScene(Renderer, *DepthShader, Scene, false);
     glCullFace(GL_BACK);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -530,19 +493,18 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
                         PointLightPosition + glm::vec3(0.0, 0.0, -1.0),
                         glm::vec3(0.0, -1.0, 0.0)));
 
-        Shader_SetVec3(Renderer.CubemapDepthShaderProgram, "u_light_pos",
-                       PointLightPosition);
-        Shader_SetFloat(Renderer.CubemapDepthShaderProgram, "u_far_plane",
-                        FarPlane);
+        const shader *CubemapDepthShader = ResourceManager_GetShader(
+            Renderer.ResourceManager, shader_type::CubemapDepth);
+        Shader_SetVec3(*CubemapDepthShader, "u_light_pos", PointLightPosition);
+        Shader_SetFloat(*CubemapDepthShader, "u_far_plane", FarPlane);
         for (unsigned int i = 0; i < 6; ++i) {
             std::string UniformName =
                 ("u_shadow_matrices[" + std::to_string(i) + "]");
-            Shader_SetMat4(Renderer.CubemapDepthShaderProgram,
-                           UniformName.c_str(), PointShadowTransforms[i]);
+            Shader_SetMat4(*CubemapDepthShader, UniformName.c_str(),
+                           PointShadowTransforms[i]);
         }
 
-        Renderer_DrawScene(Renderer, Renderer.CubemapDepthShaderProgram, Scene,
-                           false);
+        Renderer_DrawScene(Renderer, *CubemapDepthShader, Scene, false);
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -555,22 +517,28 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     glClearColor(0.01f, 0.01f, 0.01f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    const shader *LitShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Lit);
+    const shader *UnlitShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Unlit);
+    const shader *InstanceShader = ResourceManager_GetShader(
+        Renderer.ResourceManager, shader_type::Instance);
+    const shader *WaterShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Water);
+
     glm::vec4 RefractionClipPlane = glm::vec4(0.0f, -1.0f, 0.0f, 0.01f);
-    Shader_SetVec4(Renderer.ShaderProgram, "u_clip_plane", RefractionClipPlane);
-    Shader_SetVec4(Renderer.UnlitShaderProgram, "u_clip_plane",
-                   RefractionClipPlane);
-    Shader_SetVec4(Renderer.InstanceShaderProgram, "u_clip_plane",
-                   RefractionClipPlane);
-    Shader_SetVec4(Renderer.WaterShaderProgram, "u_clip_plane",
-                   RefractionClipPlane);
+    Shader_SetVec4(*LitShader, "u_clip_plane", RefractionClipPlane);
+    Shader_SetVec4(*UnlitShader, "u_clip_plane", RefractionClipPlane);
+    Shader_SetVec4(*InstanceShader, "u_clip_plane", RefractionClipPlane);
+    Shader_SetVec4(*WaterShader, "u_clip_plane", RefractionClipPlane);
 
     Renderer_SetCameraUniforms(Renderer, Context.Camera, Context.ScreenWidth,
                                Context.ScreenHeight);
-    Renderer_SetSceneLightsUniforms(Renderer, Renderer.ShaderProgram, Scene,
+    Renderer_SetSceneLightsUniforms(Renderer, *LitShader, Scene,
                                     Context.Camera);
     Renderer_SetOtherUniforms(Renderer, Context);
 
-    Renderer_DrawScene(Renderer, Renderer.ShaderProgram, Scene);
+    Renderer_DrawScene(Renderer, *LitShader, Scene);
     Renderer_DrawSkybox(Renderer, Scene.Skybox);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glViewport(0, 0, Context.FramebufferWidth, Context.FramebufferHeight);
@@ -582,13 +550,10 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::vec4 ReflectionClipPlane = glm::vec4(0.0f, 1.0f, 0.0f, -0.01f);
-    Shader_SetVec4(Renderer.ShaderProgram, "u_clip_plane", ReflectionClipPlane);
-    Shader_SetVec4(Renderer.UnlitShaderProgram, "u_clip_plane",
-                   ReflectionClipPlane);
-    Shader_SetVec4(Renderer.InstanceShaderProgram, "u_clip_plane",
-                   ReflectionClipPlane);
-    Shader_SetVec4(Renderer.WaterShaderProgram, "u_clip_plane",
-                   ReflectionClipPlane);
+    Shader_SetVec4(*LitShader, "u_clip_plane", ReflectionClipPlane);
+    Shader_SetVec4(*UnlitShader, "u_clip_plane", ReflectionClipPlane);
+    Shader_SetVec4(*InstanceShader, "u_clip_plane", ReflectionClipPlane);
+    Shader_SetVec4(*WaterShader, "u_clip_plane", ReflectionClipPlane);
 
     // Invert Camera position and pitch
     float Distance = 2 * (Context.Camera.Position.y); // - WaterHeight
@@ -600,11 +565,11 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
                       -Context.Camera.Pitch);
     Renderer_SetCameraUniforms(Renderer, OtherCamera, Context.ScreenWidth,
                                Context.ScreenHeight);
-    Renderer_SetSceneLightsUniforms(Renderer, Renderer.ShaderProgram, Scene,
+    Renderer_SetSceneLightsUniforms(Renderer, *LitShader, Scene,
                                     Context.Camera);
     Renderer_SetOtherUniforms(Renderer, Context);
 
-    Renderer_DrawScene(Renderer, Renderer.ShaderProgram, Scene);
+    Renderer_DrawScene(Renderer, *LitShader, Scene);
     Renderer_DrawSkybox(Renderer, Scene.Skybox);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -628,18 +593,18 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     glDisable(GL_CLIP_DISTANCE0);
     // INFO: Hack when disabling the clip_distance doesn't work
     glm::vec4 NoClipPlane = glm::vec4(0.0f, 1.0f, 0.0f, 10000.0f);
-    Shader_SetVec4(Renderer.ShaderProgram, "u_clip_plane", NoClipPlane);
-    Shader_SetVec4(Renderer.UnlitShaderProgram, "u_clip_plane", NoClipPlane);
-    Shader_SetVec4(Renderer.InstanceShaderProgram, "u_clip_plane", NoClipPlane);
-    Shader_SetVec4(Renderer.WaterShaderProgram, "u_clip_plane", NoClipPlane);
+    Shader_SetVec4(*LitShader, "u_clip_plane", NoClipPlane);
+    Shader_SetVec4(*UnlitShader, "u_clip_plane", NoClipPlane);
+    Shader_SetVec4(*InstanceShader, "u_clip_plane", NoClipPlane);
+    Shader_SetVec4(*WaterShader, "u_clip_plane", NoClipPlane);
 
-    glUseProgram(Renderer.ShaderProgram.ID);
+    glUseProgram(LitShader->ID);
 
     // Sets the view & projection uniforms for all the programs
     Renderer_SetCameraUniforms(Renderer, Context.Camera, Context.ScreenWidth,
                                Context.ScreenHeight);
 
-    Renderer_SetSceneLightsUniforms(Renderer, Renderer.ShaderProgram, Scene,
+    Renderer_SetSceneLightsUniforms(Renderer, *LitShader, Scene,
                                     Context.Camera);
 
     Renderer_SetOtherUniforms(Renderer, Context);
@@ -647,21 +612,20 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     // Directional Shadow Map
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, Renderer.DepthMapBuffer);
-    Shader_SetInt(Renderer.ShaderProgram, "u_shadow_map", 3);
+    Shader_SetInt(*LitShader, "u_shadow_map", 3);
 
     // Point Shadow Cubemap
     glActiveTexture(GL_TEXTURE4);
     glBindTexture(GL_TEXTURE_CUBE_MAP, Renderer.DepthCubemapBuffer);
-    Shader_SetInt(Renderer.ShaderProgram, "u_shadow_cubemap", 4);
+    Shader_SetInt(*LitShader, "u_shadow_cubemap", 4);
 
-    Shader_SetMat4(Renderer.ShaderProgram, "u_light_space_matrix",
-                   LightSpaceMatrix);
-    Shader_SetFloat(Renderer.ShaderProgram, "u_far_plane", FarPlane);
+    Shader_SetMat4(*LitShader, "u_light_space_matrix", LightSpaceMatrix);
+    Shader_SetFloat(*LitShader, "u_far_plane", FarPlane);
 
-    Renderer_DrawScene(Renderer, Renderer.ShaderProgram, Scene);
+    Renderer_DrawScene(Renderer, *LitShader, Scene);
 
     // TODO: Refactor the Water Renderer
-    glUseProgram(Renderer.WaterShaderProgram.ID);
+    glUseProgram(WaterShader->ID);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, Renderer.RefractionColorBuffer);
     glActiveTexture(GL_TEXTURE3);
@@ -671,37 +635,35 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
 
     NearPlane = 0.1f;
     FarPlane = 1000.0f;
-    Shader_SetFloat(Renderer.WaterShaderProgram, "u_near_plane", NearPlane);
-    Shader_SetFloat(Renderer.WaterShaderProgram, "u_far_plane", FarPlane);
-    Renderer_SetSceneLightsUniforms(Renderer, Renderer.WaterShaderProgram,
-                                    Scene, Context.Camera);
-    glUseProgram(Renderer.ShaderProgram.ID);
+    Shader_SetFloat(*WaterShader, "u_near_plane", NearPlane);
+    Shader_SetFloat(*WaterShader, "u_far_plane", FarPlane);
+    Renderer_SetSceneLightsUniforms(Renderer, *WaterShader, Scene,
+                                    Context.Camera);
+    glUseProgram(LitShader->ID);
     Renderer_DrawSceneWater(Renderer, Scene);
 
     // TODO: Keeping the instances out of the shadow pass for now.
     if (Scene.Instances.size() > 0) {
-        glUseProgram(Renderer.InstanceShaderProgram.ID);
+        glUseProgram(InstanceShader->ID);
 
-        Renderer_SetSceneLightsUniforms(
-            Renderer, Renderer.InstanceShaderProgram, Scene, Context.Camera);
+        Renderer_SetSceneLightsUniforms(Renderer, *InstanceShader, Scene,
+                                        Context.Camera);
 
         // Directional Shadow Map
         glActiveTexture(GL_TEXTURE3);
         glBindTexture(GL_TEXTURE_2D, Renderer.DepthMapBuffer);
-        Shader_SetInt(Renderer.InstanceShaderProgram, "u_shadow_map", 3);
+        Shader_SetInt(*InstanceShader, "u_shadow_map", 3);
 
         // Point Shadow Cubemap
         glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_CUBE_MAP, Renderer.DepthCubemapBuffer);
-        Shader_SetInt(Renderer.InstanceShaderProgram, "u_shadow_cubemap", 4);
-        Shader_SetMat4(Renderer.InstanceShaderProgram, "u_light_space_matrix",
+        Shader_SetInt(*InstanceShader, "u_shadow_cubemap", 4);
+        Shader_SetMat4(*InstanceShader, "u_light_space_matrix",
                        LightSpaceMatrix);
-        Shader_SetFloat(Renderer.InstanceShaderProgram, "u_far_plane",
-                        FarPlane);
+        Shader_SetFloat(*InstanceShader, "u_far_plane", FarPlane);
 
         model *Model = Scene.Instances[0].Model;
-        Model_DrawInstances(*Model, Renderer.InstanceShaderProgram,
-                            Scene.Instances.size());
+        Model_DrawInstances(*Model, *InstanceShader, Scene.Instances.size());
     }
 
     // Skybox
@@ -711,12 +673,14 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     // --------------------------------------------------
     bool Horizontal = true, FirstIteration = true;
     unsigned int Amount = 10;
-    glUseProgram(Renderer.BlurShaderProgram.ID);
+    const shader *BlurShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Blur);
+    glUseProgram(BlurShader->ID);
     glBindVertexArray(Renderer.FrameBufferVAO);
     glActiveTexture(GL_TEXTURE0);
     for (unsigned int i = 0; i < Amount; i++) {
         glBindFramebuffer(GL_FRAMEBUFFER, Renderer.PingPongFBO[Horizontal]);
-        Shader_SetInt(Renderer.BlurShaderProgram, "u_horizontal", Horizontal);
+        Shader_SetInt(*BlurShader, "u_horizontal", Horizontal);
         // bind texture of other framebuffer (or scene if first iteration)
         glBindTexture(GL_TEXTURE_2D,
                       FirstIteration
@@ -735,13 +699,14 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
                              Context.FramebufferHeight);
     // Draw all GuiTextures into the scene framebuffer before it is
     // presented.
-    glUseProgram(Renderer.GuiShaderProgram.ID);
+    const shader *GuiShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Gui);
+    glUseProgram(GuiShader->ID);
     glm::vec2 ScreenSize =
         glm::vec2(Context.FramebufferWidth, Context.FramebufferHeight);
-    Shader_SetVec2(Renderer.GuiShaderProgram, "u_screen_size", ScreenSize);
+    Shader_SetVec2(*GuiShader, "u_screen_size", ScreenSize);
     for (unsigned int i = 0; i < Scene.GuiTextures.size(); ++i) {
-        Renderer_DrawGuiEntity(Renderer, Renderer.GuiShaderProgram,
-                               Scene.GuiTextures.at(i));
+        Renderer_DrawGuiEntity(Renderer, *GuiShader, Scene.GuiTextures.at(i));
     }
 
     // 3th. Pass: Draw whatever is in the Framebuffer to the screen quad
@@ -758,16 +723,15 @@ void Renderer_Draw(const renderer &Renderer, const scene &Scene,
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glUseProgram(Renderer.ScreenShaderProgram.ID);
+    const shader *ScreenShader = ResourceManager_GetShader(
+        Renderer.ResourceManager, shader_type::Screen);
+    glUseProgram(ScreenShader->ID);
     glBindVertexArray(Renderer.FrameBufferVAO);
 
-    Shader_SetInt(Renderer.ScreenShaderProgram, "u_effect", Scene.Effect);
-    Shader_SetInt(Renderer.ScreenShaderProgram, "u_hdr_enabled",
-                  Scene.HDREnabled ? 1 : 0);
-    Shader_SetFloat(Renderer.ScreenShaderProgram, "u_exposure",
-                    Scene.HDRExposure);
-    Shader_SetInt(Renderer.ScreenShaderProgram, "u_bloom_enabled",
-                  Scene.BloomEnabled ? 1 : 0);
+    Shader_SetInt(*ScreenShader, "u_effect", Scene.Effect);
+    Shader_SetInt(*ScreenShader, "u_hdr_enabled", Scene.HDREnabled ? 1 : 0);
+    Shader_SetFloat(*ScreenShader, "u_exposure", Scene.HDRExposure);
+    Shader_SetInt(*ScreenShader, "u_bloom_enabled", Scene.BloomEnabled ? 1 : 0);
 
     // use the color attachment texture as
     // the texture of the quad plane
@@ -869,16 +833,18 @@ void Renderer_DrawCubeEntity(const renderer &Renderer, const shader &Shader,
         glStencilMask(0xFF);
         glDisable(GL_DEPTH_TEST);
 
-        Shader_Use(Renderer.OutlineShaderProgram);
+        const shader *OutlineShader = ResourceManager_GetShader(
+            Renderer.ResourceManager, shader_type::Outline);
+        Shader_Use(*OutlineShader);
 
         Model = glm::mat4(1.0f);
         Model = glm::translate(Model, Entity.Position);
         Model = glm::scale(Model, glm::vec3(1.02f));
         Model =
             glm::rotate(Model, glm::radians(Entity.Rotation[0]), RotationVec);
-        Shader_SetMat4(Renderer.OutlineShaderProgram, "u_model", Model);
+        Shader_SetMat4(*OutlineShader, "u_model", Model);
 
-        Mesh_Draw(Entity.Mesh, Renderer.OutlineShaderProgram);
+        Mesh_Draw(Entity.Mesh, *OutlineShader);
 
         glStencilMask(0xFF);
         glStencilFunc(GL_ALWAYS, 1, 0xFF);
@@ -919,37 +885,23 @@ void Renderer_DrawModelEntity(const renderer &Renderer, const shader &Shader,
         glStencilMask(0xFF);
         glDisable(GL_DEPTH_TEST);
 
-        Shader_Use(Renderer.OutlineShaderProgram);
+        const shader *OutlineShader = ResourceManager_GetShader(
+            Renderer.ResourceManager, shader_type::Outline);
+        Shader_Use(*OutlineShader);
 
         Model = glm::mat4(1.0f);
         Model = glm::translate(Model, Entity.Position);
         Model = glm::scale(Model, Entity.Scale + 0.01f);
         Model =
             glm::rotate(Model, glm::radians(Entity.Rotation[0]), RotationVec);
-        Shader_SetMat4(Renderer.OutlineShaderProgram, "u_model", Model);
+        Shader_SetMat4(*OutlineShader, "u_model", Model);
 
-        Model_Draw(*Entity.Model, Renderer.OutlineShaderProgram);
+        Model_Draw(*Entity.Model, *OutlineShader);
 
         glStencilMask(0xFF);
         glStencilFunc(GL_ALWAYS, 1, 0xFF);
         glEnable(GL_DEPTH_TEST);
     }
-}
-
-void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
-                        glm::vec<4, float> Color, float AmbientStrength,
-                        float SpecularStrength) {
-    Shader_Use(Renderer.ShaderProgram);
-
-    glm::vec3 LightColor = glm::vec3(Color[0], Color[1], Color[2]);
-    Shader_SetVec3(Renderer.ShaderProgram, "u_light_color", LightColor);
-
-    glm::vec3 LightPos = glm::vec3(Position[0], Position[1], Position[2]);
-    Shader_SetVec3(Renderer.ShaderProgram, "u_light_pos", LightPos);
-    Shader_SetFloat(Renderer.ShaderProgram, "u_ambient_strength",
-                    AmbientStrength);
-    Shader_SetFloat(Renderer.ShaderProgram, "u_specular_strength",
-                    SpecularStrength);
 }
 
 void Renderer_DrawSkybox(const renderer &Renderer, const skybox &Skybox) {
@@ -958,10 +910,13 @@ void Renderer_DrawSkybox(const renderer &Renderer, const skybox &Skybox) {
     glDisable(GL_CULL_FACE);
     glStencilFunc(GL_EQUAL, 0, 0xFF);
     glStencilMask(0x00);
-    Shader_Use(Renderer.SkyBoxShaderProgram);
+
+    const shader *SkyboxShader = ResourceManager_GetShader(
+        Renderer.ResourceManager, shader_type::Skybox);
+    Shader_Use(*SkyboxShader);
 
     mesh SkyboxMesh = Skybox.Mesh;
-    Mesh_Draw(SkyboxMesh, Renderer.SkyBoxShaderProgram);
+    Mesh_Draw(SkyboxMesh, *SkyboxShader);
 
     glEnable(GL_CULL_FACE);
     glDepthFunc(GL_LESS);
@@ -1080,8 +1035,28 @@ void Renderer_SetSceneLightsUniforms(const renderer &Renderer,
 
 void Renderer_SetOtherUniforms(const renderer &Renderer,
                                const context &Context) {
-    Shader_SetFloat(Renderer.WaterShaderProgram, "u_time", Context.LastFrame);
-    Shader_Use(Renderer.ShaderProgram);
+    const shader *WaterShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Water);
+    const shader *LitShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Lit);
+    Shader_SetFloat(*WaterShader, "u_time", Context.LastFrame);
+    Shader_Use(*LitShader);
+}
+
+void Renderer_SetTextureUniforms(const renderer &Renderer) {
+    const shader *BlurShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Blur);
+    const shader *WaterShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Water);
+    const shader *ScreenShader = ResourceManager_GetShader(
+        Renderer.ResourceManager, shader_type::Screen);
+
+    Shader_SetInt(*BlurShader, "u_screen_texture", 0);
+    Shader_SetInt(*WaterShader, "u_refraction_texture", 2);
+    Shader_SetInt(*WaterShader, "u_reflection_texture", 3);
+    Shader_SetInt(*WaterShader, "u_depth_map", 4);
+    Shader_SetInt(*ScreenShader, "u_screen_texture", 0);
+    Shader_SetInt(*ScreenShader, "u_bloom_texture", 1);
 }
 
 void Renderer_SetShaderCameraUniforms(const renderer &Renderer,
@@ -1099,20 +1074,35 @@ void Renderer_SetCameraUniforms(const renderer &Renderer, const camera &Camera,
     glm::mat4 Projection = glm::perspective(
         glm::radians(Camera.Zoom), ScreenWidth / ScreenHeight, 0.1f, 100.0f);
 
-    Renderer_SetShaderCameraUniforms(Renderer, Renderer.ShaderProgram, View,
+    const shader *LitShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Lit);
+    const shader *OutlineShader = ResourceManager_GetShader(
+        Renderer.ResourceManager, shader_type::Outline);
+    const shader *QuadShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Quad);
+    const shader *UnlitShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Unlit);
+    const shader *WaterShader =
+        ResourceManager_GetShader(Renderer.ResourceManager, shader_type::Water);
+    const shader *SkyboxShader = ResourceManager_GetShader(
+        Renderer.ResourceManager, shader_type::Skybox);
+    const shader *InstanceShader = ResourceManager_GetShader(
+        Renderer.ResourceManager, shader_type::Instance);
+
+    Renderer_SetShaderCameraUniforms(Renderer, *LitShader, View,
                                      Camera.Position, Projection);
-    Renderer_SetShaderCameraUniforms(Renderer, Renderer.OutlineShaderProgram,
-                                     View, Camera.Position, Projection);
-    Renderer_SetShaderCameraUniforms(Renderer, Renderer.QuadShaderProgram, View,
+    Renderer_SetShaderCameraUniforms(Renderer, *OutlineShader, View,
                                      Camera.Position, Projection);
-    Renderer_SetShaderCameraUniforms(Renderer, Renderer.InstanceShaderProgram,
-                                     View, Camera.Position, Projection);
-    Renderer_SetShaderCameraUniforms(Renderer, Renderer.UnlitShaderProgram,
-                                     View, Camera.Position, Projection);
-    Renderer_SetShaderCameraUniforms(Renderer, Renderer.WaterShaderProgram,
-                                     View, Camera.Position, Projection);
+    Renderer_SetShaderCameraUniforms(Renderer, *QuadShader, View,
+                                     Camera.Position, Projection);
+    Renderer_SetShaderCameraUniforms(Renderer, *InstanceShader, View,
+                                     Camera.Position, Projection);
+    Renderer_SetShaderCameraUniforms(Renderer, *UnlitShader, View,
+                                     Camera.Position, Projection);
+    Renderer_SetShaderCameraUniforms(Renderer, *WaterShader, View,
+                                     Camera.Position, Projection);
     // Set view & projection for skybox shader
     View = glm::mat4(glm::mat3(View));
-    Renderer_SetShaderCameraUniforms(Renderer, Renderer.SkyBoxShaderProgram,
-                                     View, Camera.Position, Projection);
+    Renderer_SetShaderCameraUniforms(Renderer, *SkyboxShader, View,
+                                     Camera.Position, Projection);
 }

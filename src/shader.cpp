@@ -143,3 +143,34 @@ void Shader_SetVec4(const shader &Shader, const char *Name,
     Shader_Use(Shader);
     glUniform4fv(Shader_GetUniform(Shader, Name), 1, glm::value_ptr(Value));
 }
+
+const char *ToString(shader_type ShaderType) {
+    switch (ShaderType) {
+    case shader_type::Lit:
+        return "Lit";
+    case shader_type::Unlit:
+        return "Unlit";
+    case shader_type::Water:
+        return "Water";
+    case shader_type::Outline:
+        return "Outline";
+    case shader_type::Skybox:
+        return "Skybox";
+    case shader_type::Screen:
+        return "Screen";
+    case shader_type::Blur:
+        return "Blur";
+    case shader_type::Depth:
+        return "Depth";
+    case shader_type::CubemapDepth:
+        return "CubemapDepth";
+    case shader_type::Gui:
+        return "Gui";
+    case shader_type::Quad:
+        return "Quad";
+    case shader_type::Instance:
+        return "Instance";
+        break;
+    }
+    return "Unknown";
+}

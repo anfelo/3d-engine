@@ -7,6 +7,21 @@
 #include <unordered_map>
 #include <glm/glm.hpp>
 
+enum class shader_type {
+    Lit,
+    Unlit,
+    Water,
+    Outline,
+    Skybox,
+    Screen,
+    Blur,
+    Depth,
+    CubemapDepth,
+    Gui,
+    Instance,
+    Quad
+};
+
 struct shader {
     GLuint ID;
     std::unordered_map<std::string, GLuint> Uniforms;
@@ -29,5 +44,7 @@ void Shader_SetVec4(const shader &Shader, const char *Name,
                     const glm::vec4 &Value);
 void Shader_SetFloat(const shader &Shader, const char *Name, float Value);
 void Shader_SetInt(const shader &Shader, const char *Name, int Value);
+
+const char *ToString(shader_type ShaderType);
 
 #endif

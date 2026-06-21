@@ -107,19 +107,6 @@ struct uniform_locators {
 struct renderer {
     resource_manager ResourceManager;
 
-    shader ShaderProgram;
-    shader OutlineShaderProgram;
-    shader QuadShaderProgram;
-    shader ScreenShaderProgram;
-    shader SkyBoxShaderProgram;
-    shader InstanceShaderProgram;
-    shader UnlitShaderProgram;
-    shader SimpleDepthShaderProgram;
-    shader CubemapDepthShaderProgram;
-    shader BlurShaderProgram;
-    shader WaterShaderProgram;
-    shader GuiShaderProgram;
-
     // Framebuffer stuff
     GLuint FrameBufferVAO, FrameBufferVBO;
     GLuint FrameBuffer;
@@ -178,9 +165,6 @@ void Renderer_DrawModelEntity(const renderer &Renderer,
                               const entity &Entity);
 void Renderer_DrawGuiEntity(const renderer &Renderer,
                             const shader &ShaderProgram, const entity &Entity);
-void Renderer_DrawLight(const renderer &Renderer, glm::vec<3, float> Position,
-                        glm::vec<4, float> Color, float AmbientStrength,
-                        float SpecularStrength);
 void Renderer_DrawSkybox(const renderer &Renderer, const skybox &Skybox);
 void Renderer_SetSceneLightsUniforms(const renderer &Renderer,
                                      const shader &ShaderProgram,
@@ -194,5 +178,6 @@ void Renderer_SetShaderCameraUniforms(const renderer &Renderer,
                                       glm::mat4 Projection);
 void Renderer_SetOtherUniforms(const renderer &Renderer,
                                const context &Context);
+void Renderer_SetTextureUniforms(const renderer &Renderer);
 
 #endif

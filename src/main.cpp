@@ -74,6 +74,8 @@ int main() {
     renderer Renderer = Renderer_Create(Context);
     ResourceManager_LoadTextures(Renderer.ResourceManager);
     ResourceManager_LoadModels(Renderer.ResourceManager);
+    ResourceManager_LoadShaders(Renderer.ResourceManager);
+    Renderer_SetTextureUniforms(Renderer);
     camera Camera = Camera_Create(glm::vec3(0.0f, 0.0f, 3.0f),
                                   glm::vec3(0.0f, 1.0f, 0.0f), YAW, PITCH);
     Context.Camera = Camera;

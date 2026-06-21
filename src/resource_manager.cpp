@@ -1,7 +1,49 @@
 #include "resource_manager.h"
 #include "model.h"
+#include "shader.h"
 #include "texture.h"
 #include <iostream>
+
+void ResourceManager_LoadShaders(resource_manager &ResourceManager) {
+
+    ResourceManager_LoadShader(ResourceManager, shader_type::Lit,
+                               "./resources/shaders/default.vert",
+                               "./resources/shaders/default.frag");
+    ResourceManager_LoadShader(ResourceManager, shader_type::Outline,
+                               "./resources/shaders/default.vert",
+                               "./resources/shaders/outline.frag");
+    ResourceManager_LoadShader(ResourceManager, shader_type::Quad,
+                               "./resources/shaders/default.vert",
+                               "./resources/shaders/quad.frag");
+    ResourceManager_LoadShader(ResourceManager, shader_type::Screen,
+                               "./resources/shaders/framebuffer.vert",
+                               "./resources/shaders/framebuffer.frag");
+    ResourceManager_LoadShader(ResourceManager, shader_type::Skybox,
+                               "./resources/shaders/cubemap.vert",
+                               "./resources/shaders/cubemap.frag");
+    ResourceManager_LoadShader(ResourceManager, shader_type::Instance,
+                               "./resources/shaders/instance.vert",
+                               "./resources/shaders/default.frag");
+    ResourceManager_LoadShader(ResourceManager, shader_type::Unlit,
+                               "./resources/shaders/unlit.vert",
+                               "./resources/shaders/unlit.frag");
+    ResourceManager_LoadShader(ResourceManager, shader_type::Depth,
+                               "./resources/shaders/simple_depth.vert",
+                               "./resources/shaders/simple_depth.frag");
+    ResourceManager_LoadShader(ResourceManager, shader_type::CubemapDepth,
+                               "./resources/shaders/cube_depth.vert",
+                               "./resources/shaders/cube_depth.frag",
+                               "./resources/shaders/cube_depth.gs");
+    ResourceManager_LoadShader(ResourceManager, shader_type::Blur,
+                               "./resources/shaders/blur.vert",
+                               "./resources/shaders/blur.frag");
+    ResourceManager_LoadShader(ResourceManager, shader_type::Water,
+                               "./resources/shaders/water.vert",
+                               "./resources/shaders/water.frag");
+    ResourceManager_LoadShader(ResourceManager, shader_type::Gui,
+                               "./resources/shaders/gui.vert",
+                               "./resources/shaders/gui.frag");
+}
 
 void ResourceManager_LoadTextures(resource_manager &ResourceManager) {
     // Crate(Container)
@@ -107,6 +149,16 @@ void ResourceManager_LoadModel(resource_manager &ResourceManager,
     Model_Create(&Iter->second, File, false);
 }
 
+void ResourceManager_LoadShader(resource_manager &ResourceManager,
+                                shader_type ShaderType, const char *VertexFile,
+                                const char *FragmentFile,
+                                const char *GeometryFile) {
+    shader Shader;
+    Shader_Create(Shader, VertexFile, FragmentFile, GeometryFile);
+
+    ResourceManager.Shaders.emplace(ShaderType, Shader);
+}
+
 texture *ResourceManager_GetTexture(resource_manager &ResourceManager,
                                     std::string Key) {
     auto Existing = ResourceManager.Textures.find(Key);
@@ -131,9 +183,25 @@ model *ResourceManager_GetModel(resource_manager &ResourceManager,
     return &Existing->second;
 }
 
+const shader *ResourceManager_GetShader(const resource_manager &ResourceManager,
+                                        shader_type ShaderType) {
+    auto Existing = ResourceManager.Shaders.find(ShaderType);
+    if (Existing == ResourceManager.Shaders.end()) {
+        std::cerr << "ERROR::RESOURCE_MANAGER:: Shader resource not found: "
+                  << ToString(ShaderType) << std::endl;
+        return nullptr;
+    }
+
+    return &Existing->second;
+}
+
 void ResourceManager_ClearResources(resource_manager &ResourceManager) {
     for (auto Iter : ResourceManager.Textures) {
         glDeleteTextures(1, &Iter.second.ID);
+    }
+
+    for (auto Iter : ResourceManager.Shaders) {
+        Shader_Delete(Iter.second);
     }
 
     // TODO: Clean up the model textures
