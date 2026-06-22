@@ -13,97 +13,6 @@
 #include <glm/glm.hpp>
 #include <iostream>
 
-struct directional_light {
-    GLuint DirUniformLoc;
-    GLuint AmbientUniformLoc;
-    GLuint DiffuseUniformLoc;
-    GLuint SpecularUniformLoc;
-    GLuint EnabledUniformLoc;
-    GLuint UseBlinnUniformLoc;
-    GLuint CastsShadowUniformLoc;
-};
-
-struct point_light {
-    GLuint PositionUniformLoc;
-    GLuint AmbientUniformLoc;
-    GLuint DiffuseUniformLoc;
-    GLuint SpecularUniformLoc;
-    GLuint ConstantUniformLoc;
-    GLuint LinearUniformLoc;
-    GLuint QuadraticUniformLoc;
-    GLuint EnabledUniformLoc;
-    GLuint UseBlinnUniformLoc;
-    GLuint CastsShadowUniformLoc;
-};
-
-struct spot_light {
-    GLuint PositionUniformLoc;
-    GLuint DirectionUniformLoc;
-    GLuint AmbientUniformLoc;
-    GLuint DiffuseUniformLoc;
-    GLuint SpecularUniformLoc;
-    GLuint ConstantUniformLoc;
-    GLuint LinearUniformLoc;
-    GLuint QuadraticUniformLoc;
-    GLuint CutOffUniformLoc;
-    GLuint OuterCutOffUniformLoc;
-    GLuint EnabledUniformLoc;
-    GLuint UseBlinnUniformLoc;
-    GLuint CastsShadowUniformLoc;
-};
-
-struct material_uniforms {
-    GLuint DiffuseUniformLoc;
-    GLuint SpecularUniformLoc;
-    GLuint NormalUniformLoc;
-    GLuint ShininessUniformLoc;
-    GLuint HasNormalUniformLoc;
-    GLuint HasSpecularUniformLoc;
-};
-
-struct uniform_locators {
-    GLuint ModelUniformLoc;
-    GLuint ViewUniformLoc;
-    GLuint ProjectionUniformLoc;
-
-    GLuint TimeUniformLoc;
-    GLuint ClipPlaneUniformLoc;
-
-    GLuint EntityColorUniformLoc;
-    GLuint LightColorUniformLoc;
-    GLuint LightPositionUniformLoc;
-    GLuint ViewPositionUniformLoc;
-    GLuint AmbientStrengthUniformLoc;
-    GLuint SpecularStrengthUniformLoc;
-
-    GLuint ScreenTextureUniformLoc;
-    GLuint EffectUniformLoc;
-
-    GLuint LightSpaceMatrixUniformLoc;
-    GLuint ShadowMapUniformLoc;
-    GLuint ShadowCubemapUniformLoc;
-    GLuint FarPlaneUniformLoc;
-    GLuint NearPlaneUniformLoc;
-    GLuint ShadowMatricesUniformLoc;
-
-    GLuint HDRExposureUniformLoc;
-    GLuint HDREnabledUniformLoc;
-
-    GLuint HorizontalUniformLoc;
-    GLuint BloomEnabledUniformLoc;
-    GLuint BloomTextureUniformLoc;
-
-    GLuint RefractionTextureUniformLoc;
-    GLuint ReflectionTextureUniformLoc;
-    GLuint DepthMapUniformLoc;
-
-    material_uniforms Material;
-
-    directional_light DirectionalLight;
-    spot_light SpotLight;
-    point_light PointLights[4];
-};
-
 struct renderer {
     resource_manager ResourceManager;
 
@@ -170,9 +79,6 @@ void Renderer_Draw(renderer &Renderer, const scene &Scene,
 void Renderer_DrawScene(const renderer &Renderer, const shader &ShaderProgram,
                         const scene &Scene, bool useEntityShader = true);
 void Renderer_DrawSceneWater(const renderer &Renderer, const scene &Scene);
-void Renderer_DrawTriangle(const renderer &Renderer,
-                           const shader &ShaderProgram,
-                           glm::vec<3, float> position);
 void Renderer_DrawQuadEntity(const renderer &Renderer,
                              const shader &ShaderProgram, const entity &Entity);
 void Renderer_DrawCubeEntity(const renderer &Renderer,

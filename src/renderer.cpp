@@ -800,30 +800,6 @@ void Renderer_Draw(renderer &Renderer, const scene &Scene,
     Renderer_PresentPass(Renderer, Scene, Context);
 }
 
-// TODO: Needs fixing
-void Renderer_DrawTriangle(const renderer &Renderer, const shader &Shader,
-                           glm::vec<3, float> position) {
-    Shader_Use(Shader);
-
-    glm::mat4 View = glm::mat4(1.0f);
-    View = glm::translate(View, glm::vec3(0.0f, 0.0f, -3.0f));
-    glm::mat4 Projection;
-    Projection =
-        glm::perspective(glm::radians(45.0f), 800.0f / 600.0f, 0.1f, 100.0f);
-
-    // Sets the uniform value
-    Shader_SetMat4(Shader, "u_view", View);
-    Shader_SetMat4(Shader, "u_projection", Projection);
-
-    glm::mat4 Model = glm::mat4(1.0f);
-    Model = glm::translate(Model, position);
-    Shader_SetMat4(Shader, "u_model", Model);
-
-    // glBindVertexArray(TriangleMesh.VAO);
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-}
-
 void Renderer_DrawQuadEntity(const renderer &Renderer, const shader &Shader,
                              const entity &Entity) {
     glDisable(GL_CULL_FACE);
